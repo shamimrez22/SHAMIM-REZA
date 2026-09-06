@@ -15,6 +15,7 @@ import {
   JobDescriptionData,
 } from '../types/portfolio';
 import { initialJobDescriptionData } from '../data/jobDescriptionData';
+import { fetchGlobalProfilePhoto, saveGlobalProfilePhoto } from '../utils/cloudSync';
 import {
   personalInfo as initialPersonalInfo,
   statistics as initialStatistics,
@@ -209,6 +210,44 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     document.title = `${state.personalInfo.name} | ${state.personalInfo.title}`;
   }, [state.personalInfo.name, state.personalInfo.title]);
 
+  // Real-time Global Cloud Synchronization
+  // Ensures ANY browser (mobile, new devices, incognito, HR recruiters) immediately receives
+  // the live executive profile photo even if local storage is blank.
+  useEffect(() => {
+    let isMounted = true;
+    fetchGlobalProfilePhoto().then((cloudPhoto) => {
+      if (!isMounted || !cloudPhoto) return;
+
+      setState((prev) => {
+        // If current photo is empty or the default svg, or if cloud photo is different
+        const isCurrentDefault =
+          !prev.personalInfo.profilePhotoUrl ||
+          prev.personalInfo.profilePhotoUrl === '/profile-photo.svg' ||
+          prev.personalInfo.profilePhotoUrl === '';
+
+        if (isCurrentDefault || prev.personalInfo.profilePhotoUrl !== cloudPhoto) {
+          try {
+            localStorage.setItem('portfolio_profile_photo', cloudPhoto);
+          } catch (e) {
+            // ignore
+          }
+          return {
+            ...prev,
+            personalInfo: {
+              ...prev.personalInfo,
+              profilePhotoUrl: cloudPhoto,
+            },
+          };
+        }
+        return prev;
+      });
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const updatePersonalInfo = (info: Partial<PersonalInfo>) => {
     setState((prev) => ({
       ...prev,
@@ -230,6 +269,11 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.warn('Failed to save to portfolio_profile_photo cache', e);
     }
     updatePersonalInfo({ profilePhotoUrl: urlOrBase64 });
+
+    // If it's a valid remote URL, also broadcast to global cloud
+    if (urlOrBase64 && (urlOrBase64.startsWith('http://') || urlOrBase64.startsWith('https://'))) {
+      saveGlobalProfilePhoto(urlOrBase64);
+    }
   };
 
   const removeProfilePhoto = () => {
@@ -239,6 +283,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.warn('Failed to remove portfolio_profile_photo cache', e);
     }
     updatePersonalInfo({ profilePhotoUrl: '' });
+    saveGlobalProfilePhoto('');
   };
 
   const uploadCV = (fileData: string, fileName: string, fileSize?: string) => {

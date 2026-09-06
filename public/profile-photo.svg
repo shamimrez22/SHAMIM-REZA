@@ -1,91 +1,51 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
   <defs>
-    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f172a" />
-      <stop offset="50%" stop-color="#1e293b" />
-      <stop offset="100%" stop-color="#0b1329" />
+    <linearGradient id="avatar-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16" />
+      <stop offset="50%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#030712" />
     </linearGradient>
-    <linearGradient id="suit-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="accent-ring" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316" />
+      <stop offset="50%" stop-color="#ea580c" />
+      <stop offset="100%" stop-color="#c2410c" />
+    </linearGradient>
+    <linearGradient id="silhouette-head" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <linearGradient id="silhouette-suit" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#1e293b" />
-      <stop offset="100%" stop-color="#090d16" />
+      <stop offset="100%" stop-color="#0f172a" />
     </linearGradient>
-    <linearGradient id="tie-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ea580c" />
-      <stop offset="100%" stop-color="#9a3412" />
-    </linearGradient>
-    <linearGradient id="skin-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#f3c59d" />
-      <stop offset="100%" stop-color="#d99b6c" />
-    </linearGradient>
-    <linearGradient id="hair-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#2d2a29" />
-      <stop offset="100%" stop-color="#141110" />
-    </linearGradient>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-opacity="0.35" />
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#f97316" flood-opacity="0.3" />
     </filter>
   </defs>
 
-  <!-- Background Circle -->
-  <circle cx="250" cy="250" r="250" fill="url(#bg-grad)" />
+  <!-- Background Canvas -->
+  <circle cx="250" cy="250" r="250" fill="url(#avatar-bg)" />
 
-  <!-- Subtle Technical Grid Lines -->
-  <circle cx="250" cy="250" r="230" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="6 6" opacity="0.25" />
-  <circle cx="250" cy="250" r="200" fill="none" stroke="#ea580c" stroke-width="1" opacity="0.2" />
+  <!-- Outer Precision Border -->
+  <circle cx="250" cy="250" r="242" fill="none" stroke="url(#accent-ring)" stroke-width="4" filter="url(#glow)" />
+  <circle cx="250" cy="250" r="230" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.4" />
 
-  <!-- Suit Body (Shoulders) -->
-  <path d="M 80 500 C 90 380, 160 330, 250 330 C 340 330, 410 380, 420 500 Z" fill="url(#suit-grad)" filter="url(#shadow)" />
+  <!-- Corporate Executive Silhouette Shoulders -->
+  <path d="M 60 500 C 75 390, 150 340, 250 340 C 350 340, 425 390, 440 500 Z" fill="url(#silhouette-suit)" />
 
-  <!-- Crisp White Shirt Collar -->
-  <polygon points="250,330 200,285 220,380 250,365 280,380 300,285" fill="#ffffff" />
-  <polygon points="200,285 225,350 250,330" fill="#e2e8f0" />
-  <polygon points="300,285 275,350 250,330" fill="#cbd5e1" />
+  <!-- Executive Collar & Tie Accent -->
+  <polygon points="250,340 215,400 250,450 285,400" fill="#0f172a" stroke="#334155" stroke-width="1.5" />
+  <polygon points="244,350 256,350 262,440 250,470 238,440" fill="url(#accent-ring)" />
+  <polygon points="200,345 225,410 248,340" fill="#f8fafc" opacity="0.9" />
+  <polygon points="300,345 275,410 252,340" fill="#f8fafc" opacity="0.9" />
 
-  <!-- Executive Tie -->
-  <polygon points="242,330 258,330 262,350 250,358 238,350" fill="#c2410c" />
-  <polygon points="240,355 260,355 266,470 250,500 234,470" fill="url(#tie-grad)" />
-  <polygon points="247,355 253,355 258,470 250,490 242,470" fill="#f97316" opacity="0.3" />
+  <!-- Executive Head Silhouette -->
+  <circle cx="250" cy="210" r="85" fill="#1e293b" stroke="#334155" stroke-width="2" />
+  
+  <!-- Sleek Professional Monogram SR -->
+  <text x="250" y="228" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="62" font-weight="900" fill="#ffffff" letter-spacing="2">SR</text>
 
-  <!-- Suit Lapels -->
-  <polygon points="175,350 215,440 238,350 200,285" fill="#1e293b" stroke="#0f172a" stroke-width="1.5" />
-  <polygon points="325,350 285,440 262,350 300,285" fill="#1e293b" stroke="#0f172a" stroke-width="1.5" />
-
-  <!-- Neck -->
-  <path d="M 220 230 L 220 295 C 220 315, 280 315, 280 295 L 280 230 Z" fill="#d99b6c" />
-  <path d="M 220 270 C 235 295, 265 295, 280 270 L 280 295 C 280 315, 220 315, 220 295 Z" fill="#c48354" opacity="0.6" />
-
-  <!-- Head / Face -->
-  <ellipse cx="250" cy="190" rx="65" ry="80" fill="url(#skin-grad)" filter="url(#shadow)" />
-
-  <!-- Ears -->
-  <ellipse cx="184" cy="195" rx="10" ry="18" fill="#d99b6c" />
-  <ellipse cx="316" cy="195" rx="10" ry="18" fill="#d99b6c" />
-
-  <!-- Hair (Professional Modern Executive Style) -->
-  <path d="M 185 180 C 180 130, 210 100, 250 100 C 290 100, 320 130, 315 180 C 310 145, 290 120, 250 120 C 205 120, 190 150, 185 180 Z" fill="url(#hair-grad)" />
-  <path d="M 185 160 C 185 120, 220 95, 260 95 C 305 95, 322 125, 320 165 C 310 130, 275 110, 240 115 C 210 118, 195 135, 185 160 Z" fill="#1e1b18" />
-
-  <!-- Eyebrows -->
-  <path d="M 210 165 Q 225 158 240 166" stroke="#1c1917" stroke-width="4.5" stroke-linecap="round" fill="none" />
-  <path d="M 260 166 Q 275 158 290 165" stroke="#1c1917" stroke-width="4.5" stroke-linecap="round" fill="none" />
-
-  <!-- Eyes -->
-  <ellipse cx="225" cy="180" rx="8" ry="5.5" fill="#1c1917" />
-  <circle cx="227" cy="178" r="2.5" fill="#ffffff" />
-  <ellipse cx="275" cy="180" rx="8" ry="5.5" fill="#1c1917" />
-  <circle cx="277" cy="178" r="2.5" fill="#ffffff" />
-
-  <!-- Nose -->
-  <path d="M 250 178 L 246 208 Q 250 213 254 208 Z" fill="#c48354" />
-
-  <!-- Friendly Professional Smile -->
-  <path d="M 235 228 Q 250 242 265 228" stroke="#7c2d12" stroke-width="3.5" stroke-linecap="round" fill="none" />
-  <path d="M 238 230 Q 250 238 262 230" stroke="#ffffff" stroke-width="2" stroke-linecap="round" fill="none" />
-
-  <!-- Executive Lapel Pin Badge -->
-  <circle cx="210" cy="385" r="7" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5" />
-  <polygon points="210,381 212,384 215,385 212,386 210,389 208,386 205,385 208,384" fill="#ffffff" />
-
-  <!-- Outer Ring Highlight -->
-  <circle cx="250" cy="250" r="246" fill="none" stroke="url(#tie-grad)" stroke-width="4" opacity="0.8" />
+  <!-- Small Subtitle -->
+  <rect x="160" y="270" width="180" height="24" rx="12" fill="#ea580c" opacity="0.9" />
+  <text x="250" y="286" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="800" fill="#ffffff" letter-spacing="1.5">EXECUTIVE PROFILE</text>
 </svg>

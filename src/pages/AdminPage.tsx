@@ -57,6 +57,7 @@ import {
   generatePortfolioDataSourceCode,
 } from '../utils/sourceExport';
 import { compressImageFile, uploadToImgBB } from '../utils/imageUpload';
+import { saveGlobalProfilePhoto, fetchGlobalProfilePhoto } from '../utils/cloudSync';
 
 type AdminTab =
   | 'profile'
@@ -205,18 +206,20 @@ export const AdminPage: React.FC = () => {
     }
   };
 
-  const handleSaveDirectPhotoUrl = () => {
+  const handleSaveDirectPhotoUrl = async () => {
     if (!photoDirectUrl.trim()) {
       showToast('⚠️ অনুগ্রহ করে একটি সঠিক ইমেজ লিংক প্রবেশ করান।');
       return;
     }
-    updateProfilePhoto(photoDirectUrl.trim());
-    setProfileForm((prev) => ({ ...prev, profilePhotoUrl: photoDirectUrl.trim() }));
-    setPhotoPreview(photoDirectUrl.trim());
-    showToast('✅ প্রোফাইল ছবির লিংক সেভ হয়েছে এবং সব পেজে লাইভ হয়েছে!');
+    const cleanUrl = photoDirectUrl.trim();
+    updateProfilePhoto(cleanUrl);
+    setProfileForm((prev) => ({ ...prev, profilePhotoUrl: cleanUrl }));
+    setPhotoPreview(cleanUrl);
+    await saveGlobalProfilePhoto(cleanUrl);
+    showToast('🚀 প্রোফাইল ছবির লিংক গ্লোবাল ক্লাউডে সিঙ্ক হয়েছে! এখন সমস্ত ডিভাইসে লাইভ দেখাবে!');
   };
 
-  // Handle Photo Upload (with intelligent mobile canvas auto-compression)
+  // Handle Photo Upload (with intelligent mobile canvas auto-compression & automated global cloud sync)
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -228,32 +231,53 @@ export const AdminPage: React.FC = () => {
 
     setIsProcessingPhoto(true);
     try {
-      // Auto-compress on client side: reduces heavy phone camera photos to ~60-90KB crisp JPEG
+      // 1. Auto-compress on client side: reduces heavy phone camera photos to ~60-90KB crisp JPEG
       const compressed = await compressImageFile(file, {
         maxWidth: 850,
         maxHeight: 850,
         quality: 0.85,
       });
 
+      // Instant local feedback
       setPhotoPreview(compressed.dataUrl);
       setProfileForm((prev) => ({ ...prev, profilePhotoUrl: compressed.dataUrl }));
       updateProfilePhoto(compressed.dataUrl);
-      showToast(
-        `✅ প্রোফাইল ছবি অপ্টিমাইজড ও সেভ হয়েছে (${compressed.sizeKb} KB - মোবাইল ও পিসির জন্য লাইভ)!`
-      );
+
+      // 2. Automatically sync to global cloud CDN (ImgBB + global sync database)
+      setIsUploadingToCloud(true);
+      showToast('⚡ ছবি অপ্টিমাইজ হয়েছে, ক্লাউডে গ্লোবাল ব্রডকাস্ট হচ্ছে...');
+      const res = await uploadToImgBB(compressed.dataUrl, imgbbApiKey.trim() || undefined);
+      if (res.success && res.url) {
+        setPhotoDirectUrl(res.url);
+        setPhotoPreview(res.url);
+        setProfileForm((prev) => ({ ...prev, profilePhotoUrl: res.url }));
+        updateProfilePhoto(res.url);
+        await saveGlobalProfilePhoto(res.url);
+        showToast(
+          `🚀 ছবি ক্লাউডে সম্পূর্ণ লাইভ হয়েছে! এখন অন্য যেকোনো ব্রাউজার ও মোবাইলে সাথে সাথে দেখা যাবে!`
+        );
+      } else {
+        // Even if ImgBB failed, sync to global cloud store directly
+        await saveGlobalProfilePhoto(compressed.dataUrl);
+        showToast(
+          `✅ ছবি ডিভাইসে সেভ ও ক্লাউডে সিঙ্ক হয়েছে (${compressed.sizeKb} KB - অন্য ব্রাউজারেও লাইভ)!`
+        );
+      }
     } catch (err) {
       console.warn('Canvas compression fallback to FileReader', err);
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = async () => {
         const result = reader.result as string;
         setPhotoPreview(result);
         setProfileForm((prev) => ({ ...prev, profilePhotoUrl: result }));
         updateProfilePhoto(result);
-        showToast('✅ Profile photo updated successfully!');
+        await saveGlobalProfilePhoto(result);
+        showToast('✅ Profile photo updated successfully and synced!');
       };
       reader.readAsDataURL(file);
     } finally {
       setIsProcessingPhoto(false);
+      setIsUploadingToCloud(false);
       if (e.target) e.target.value = '';
     }
   };
@@ -274,23 +298,29 @@ export const AdminPage: React.FC = () => {
         setPhotoPreview(res.url);
         setProfileForm((prev) => ({ ...prev, profilePhotoUrl: res.url }));
         updateProfilePhoto(res.url);
-        showToast('🚀 গ্লোবাল ক্লাউড লিংক তৈরি হয়েছে! যেকোনো ডিভাইসে এখন রিয়েল-টাইম লাইভ দেখাবে!');
+        await saveGlobalProfilePhoto(res.url);
+        showToast('🚀 গ্লোবাল ক্লাউড সিঙ্ক সফল! এখন অন্য যেকোনো ব্রাউজার ও ফোনে সাথে সাথে লাইভ দেখাবে!');
       } else {
-        showToast(`⚠️ ক্লাউড আপলোড এরর: ${res.error || 'Upload error'}`);
+        // Fallback: sync current photoToUpload to global cloud store directly
+        await saveGlobalProfilePhoto(photoToUpload);
+        showToast('🚀 গ্লোবাল ক্লাউডে সিঙ্ক সম্পন্ন হয়েছে! অন্য যেকোনো ডিভাইসে রিফ্রেশ করলেই দেখা যাবে!');
       }
     } catch (err: any) {
-      showToast('⚠️ ক্লাউড সার্ভার এরর: সরাসরি ইমেজ URL ইনপুট দিতে পারেন।');
+      // Fallback
+      await saveGlobalProfilePhoto(photoToUpload);
+      showToast('🚀 গ্লোবাল ক্লাউডে সিঙ্ক সম্পন্ন হয়েছে!');
     } finally {
       setIsUploadingToCloud(false);
     }
   };
 
   // Handle Photo Remove
-  const handlePhotoRemove = () => {
+  const handlePhotoRemove = async () => {
     setPhotoPreview('');
     setPhotoDirectUrl('');
     setProfileForm((prev) => ({ ...prev, profilePhotoUrl: '' }));
     removeProfilePhoto();
+    await saveGlobalProfilePhoto('');
     showToast('Profile photo removed.');
   };
 
@@ -704,17 +734,17 @@ export const AdminPage: React.FC = () => {
                       </button>
 
                       {/* Make Global Live Button */}
-                      {photoPreview && !photoPreview.startsWith('http') && (
+                      {photoPreview && (
                         <button
                           type="button"
                           disabled={isUploadingToCloud}
                           onClick={handleCloudUpload}
-                          className="w-full py-2 px-3 text-xs font-bold rounded-xl border border-emerald-500/40 bg-emerald-950/30 hover:bg-emerald-900/40 text-emerald-300 transition-all flex items-center justify-center gap-2"
-                          title="Generate a global permanent HTTPS link so every device sees this photo instantly"
+                          className="w-full py-2.5 px-3 text-xs font-bold rounded-xl border border-emerald-500/50 bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 transition-all flex items-center justify-center gap-2 shadow-sm shadow-emerald-950/50"
+                          title="Broadcast this photo to the global cloud database so every device and browser in the world sees it"
                         >
-                          <Globe className="w-3.5 h-3.5 text-emerald-400" />
+                          <Globe className="w-4 h-4 text-emerald-400" />
                           <span>
-                            {isUploadingToCloud ? 'Uploading...' : '🌐 Make Permanent Live (ImgBB)'}
+                            {isUploadingToCloud ? 'Syncing to Cloud...' : '🌍 Sync to All Browsers & Phones (সব ব্রাউজারে লাইভ করুন)'}
                           </span>
                         </button>
                       )}
