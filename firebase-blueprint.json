@@ -1,0 +1,26 @@
+{
+  "entities": {
+    "portfolioConfig": {
+      "title": "Portfolio Configuration",
+      "description": "Configuration and executive profile photo for Shamim Reza's portfolio",
+      "type": "object",
+      "properties": {
+        "profilePhotoUrl": {
+          "type": "string",
+          "description": "Profile photo URL or base64 data"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of the last sync"
+        }
+      },
+      "required": ["profilePhotoUrl", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/portfolio/{portfolioId}": {
+      "schema": "portfolioConfig",
+      "description": "Public portfolio profile and settings"
+    }
+  }
+}

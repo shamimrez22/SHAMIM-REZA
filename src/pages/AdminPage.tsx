@@ -695,17 +695,13 @@ export const AdminPage: React.FC = () => {
                     <div className="mb-4">
                       <span
                         className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
-                          photoPreview?.startsWith('http')
-                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                            : photoPreview?.startsWith('data:')
-                            ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                          photoPreview && photoPreview !== '/profile-photo.svg'
+                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
                             : 'bg-slate-800 text-slate-400 border-slate-700'
                         }`}
                       >
-                        {photoPreview?.startsWith('http')
-                          ? '🌐 Global Cloud Hosted'
-                          : photoPreview?.startsWith('data:')
-                          ? '⚡ Mobile Auto-Optimized'
+                        {photoPreview && photoPreview !== '/profile-photo.svg'
+                          ? '🔥 Firebase Cloud Synced'
                           : 'Standard Default Photo'}
                       </span>
                     </div>
@@ -739,12 +735,12 @@ export const AdminPage: React.FC = () => {
                           type="button"
                           disabled={isUploadingToCloud}
                           onClick={handleCloudUpload}
-                          className="w-full py-2.5 px-3 text-xs font-bold rounded-xl border border-emerald-500/50 bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 transition-all flex items-center justify-center gap-2 shadow-sm shadow-emerald-950/50"
-                          title="Broadcast this photo to the global cloud database so every device and browser in the world sees it"
+                          className="w-full py-2.5 px-3 text-xs font-bold rounded-xl border border-amber-500/50 bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 transition-all flex items-center justify-center gap-2 shadow-sm shadow-amber-950/50"
+                          title="Save permanently to Firebase Cloud so every device and browser in the world sees it"
                         >
-                          <Globe className="w-4 h-4 text-emerald-400" />
+                          <Globe className="w-4 h-4 text-amber-400" />
                           <span>
-                            {isUploadingToCloud ? 'Syncing to Cloud...' : '🌍 Sync to All Browsers & Phones (সব ব্রাউজারে লাইভ করুন)'}
+                            {isUploadingToCloud ? 'Syncing to Firebase...' : '🔥 Sync to Firebase (সব ডিভাইসে স্থায়ী করুন)'}
                           </span>
                         </button>
                       )}

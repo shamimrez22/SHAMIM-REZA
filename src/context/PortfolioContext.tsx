@@ -15,7 +15,11 @@ import {
   JobDescriptionData,
 } from '../types/portfolio';
 import { initialJobDescriptionData } from '../data/jobDescriptionData';
-import { fetchGlobalProfilePhoto, saveGlobalProfilePhoto } from '../utils/cloudSync';
+import {
+  fetchGlobalProfilePhoto,
+  saveGlobalProfilePhoto,
+  subscribeToGlobalProfilePhoto,
+} from '../utils/cloudSync';
 import {
   personalInfo as initialPersonalInfo,
   statistics as initialStatistics,
@@ -210,25 +214,21 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     document.title = `${state.personalInfo.name} | ${state.personalInfo.title}`;
   }, [state.personalInfo.name, state.personalInfo.title]);
 
-  // Real-time Global Cloud Synchronization
+  // Real-time Global Cloud Synchronization via Firebase Firestore
   // Ensures ANY browser (mobile, new devices, incognito, HR recruiters) immediately receives
   // the live executive profile photo even if local storage is blank.
   useEffect(() => {
     let isMounted = true;
+
+    // Initial fetch from Firebase
     fetchGlobalProfilePhoto().then((cloudPhoto) => {
       if (!isMounted || !cloudPhoto) return;
 
       setState((prev) => {
-        // If current photo is empty or the default svg, or if cloud photo is different
-        const isCurrentDefault =
-          !prev.personalInfo.profilePhotoUrl ||
-          prev.personalInfo.profilePhotoUrl === '/profile-photo.svg' ||
-          prev.personalInfo.profilePhotoUrl === '';
-
-        if (isCurrentDefault || prev.personalInfo.profilePhotoUrl !== cloudPhoto) {
+        if (prev.personalInfo.profilePhotoUrl !== cloudPhoto) {
           try {
             localStorage.setItem('portfolio_profile_photo', cloudPhoto);
-          } catch (e) {
+          } catch {
             // ignore
           }
           return {
@@ -243,8 +243,31 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       });
     });
 
+    // Real-time listener: instantly catches updates from any device or admin tab
+    const unsubscribe = subscribeToGlobalProfilePhoto((livePhoto) => {
+      if (!isMounted || !livePhoto) return;
+      setState((prev) => {
+        if (prev.personalInfo.profilePhotoUrl !== livePhoto) {
+          try {
+            localStorage.setItem('portfolio_profile_photo', livePhoto);
+          } catch {
+            // ignore
+          }
+          return {
+            ...prev,
+            personalInfo: {
+              ...prev.personalInfo,
+              profilePhotoUrl: livePhoto,
+            },
+          };
+        }
+        return prev;
+      });
+    });
+
     return () => {
       isMounted = false;
+      unsubscribe();
     };
   }, []);
 
@@ -270,8 +293,8 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
     updatePersonalInfo({ profilePhotoUrl: urlOrBase64 });
 
-    // If it's a valid remote URL, also broadcast to global cloud
-    if (urlOrBase64 && (urlOrBase64.startsWith('http://') || urlOrBase64.startsWith('https://'))) {
+    // Always permanently save to Firebase Firestore
+    if (urlOrBase64 && urlOrBase64.trim() !== '') {
       saveGlobalProfilePhoto(urlOrBase64);
     }
   };
