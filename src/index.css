@@ -176,7 +176,6 @@
   footer,
   button,
   .print-hidden,
-  .print\\:hidden,
   .no-print {
     display: none !important;
   }

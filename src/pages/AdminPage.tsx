@@ -1329,6 +1329,55 @@ export const AdminPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* CLOUDFLARE PAGES / WORKERS SPECIFIC CONFIGURATION CARD */}
+              <div className="p-6 sm:p-8 rounded-2xl border border-amber-500/30 bg-amber-950/10 space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2.5 rounded-xl bg-amber-600 text-white font-black text-sm shrink-0 mt-0.5">
+                    ⚡
+                  </div>
+                  <div>
+                    <h4 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                      <span>Cloudflare বিল্ড ও ডিপ্লয় সেটিং নির্দেশিকা (সমস্যার স্থায়ী সমাধান)</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        Cloudflare Fixed
+                      </span>
+                    </h4>
+                    <p className="text-xs text-slate-300 mt-1">
+                      Cloudflare-এ <strong>"Installing ❌"</strong> এরর হওয়ার মূল কারণ ছিল প্রজেক্টে <code className="text-amber-300">bun.lock</code> থাকা এবং Node ভার্সন সেট না থাকা। আমরা তা সম্পূর্ণ ফিক্স করে দিয়েছি:
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <div className="p-3.5 rounded-xl bg-black/40 border border-slate-800 text-xs">
+                    <span className="text-slate-400 block text-[11px] font-bold uppercase tracking-wider mb-1">
+                      Cloudflare Pages সেটিংস (সুপারিশকৃত):
+                    </span>
+                    <ul className="space-y-1 text-slate-200">
+                      <li>• <strong>Framework preset:</strong> <code className="text-amber-300">Vite</code></li>
+                      <li>• <strong>Build command:</strong> <code className="text-emerald-400 font-mono">npm run build</code></li>
+                      <li>• <strong>Build output directory:</strong> <code className="text-emerald-400 font-mono">dist</code></li>
+                      <li>• <strong>Root directory:</strong> <code className="text-slate-400 font-mono">/</code></li>
+                    </ul>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-black/40 border border-slate-800 text-xs">
+                    <span className="text-slate-400 block text-[11px] font-bold uppercase tracking-wider mb-1">
+                      Cloudflare Environment Variables:
+                    </span>
+                    <p className="text-slate-300 text-[11px] mb-2">
+                      যদি Cloudflare ড্যাশবোর্ডে Environment Variables অপশন থাকে:
+                    </p>
+                    <div className="p-2 rounded bg-slate-900 border border-slate-700 font-mono text-[11px] text-amber-300">
+                      NODE_VERSION = 20
+                    </div>
+                    <span className="text-[10px] text-slate-400 block mt-1">
+                      (প্রজেক্টে <code className="text-slate-300">.nvmrc</code> ও <code className="text-slate-300">.node-version</code> ফাইল যোগ করায় Cloudflare স্বয়ংক্রিয়ভাবেই Node 20 পাবে)
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
