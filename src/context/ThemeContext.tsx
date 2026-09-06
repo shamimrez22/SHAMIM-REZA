@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { ThemeMode } from '../types/portfolio';
+import { defaultMasterTheme } from '../data/portfolioData';
 
 interface ThemeContextType {
   theme: ThemeMode;
@@ -19,7 +20,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 const MASTER_THEME_STORAGE_KEY = 'portfolio_admin_master_theme';
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // 1. Get the admin's permanent master default theme from localStorage
+  // 1. Get the admin's permanent master default theme from localStorage or fallback to defaultMasterTheme from code
   const getInitialMasterTheme = (): ThemeMode => {
     const savedMaster = localStorage.getItem(MASTER_THEME_STORAGE_KEY);
     if (savedMaster === 'light' || savedMaster === 'dark' || savedMaster === 'orange') {
@@ -30,7 +31,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (legacy === 'light' || legacy === 'dark' || legacy === 'orange') {
       return legacy;
     }
-    return 'dark'; // Black theme by default
+    return defaultMasterTheme; // Defaults to Admin's configured theme across all devices
   };
 
   const [adminMasterTheme, setAdminMasterThemeState] = useState<ThemeMode>(getInitialMasterTheme);

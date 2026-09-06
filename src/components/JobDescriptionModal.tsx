@@ -22,6 +22,7 @@ import { usePortfolio } from '../context/PortfolioContext';
 import {
   downloadJobDescriptionAsWordDoc,
   downloadJobDescriptionAsExcelFile,
+  downloadElementAsDirectPDF,
 } from '../utils/documentExport';
 import { initialJobDescriptionData } from '../data/jobDescriptionData';
 
@@ -45,11 +46,21 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
     defaultTemplate
   );
   const [copied, setCopied] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   if (!isOpen) return null;
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadDirectPDF = async () => {
+    const elementId = activeView === 'excel-sheet' ? 'printable-jd-spreadsheet' : 'printable-jd-area';
+    await downloadElementAsDirectPDF(
+      elementId,
+      `${(personalInfo?.name || 'Shamim_Reza').replace(/\s+/g, '_')}_IE_Job_Description_Report.pdf`,
+      setIsGeneratingPdf
+    );
   };
 
   const handleDownloadDoc = () => {
@@ -171,6 +182,26 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
               >
                 {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                 <span className="hidden sm:inline">{copied ? 'Copied!' : 'Copy TSV'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDownloadDirectPDF}
+                disabled={isGeneratingPdf}
+                title="Download direct high-resolution PDF identical to website preview"
+                className="px-3.5 py-1.5 rounded-xl text-xs font-black text-white flex items-center gap-1.5 transition-all shadow-md bg-rose-600 hover:bg-rose-500 active:scale-95 disabled:opacity-60"
+              >
+                {isGeneratingPdf ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Creating PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Download PDF (.pdf)</span>
+                  </>
+                )}
               </button>
 
               <button

@@ -22,6 +22,8 @@ import {
  * ============================================================================
  */
 
+export const defaultMasterTheme: 'orange' | 'dark' | 'light' = 'orange';
+
 export const personalInfo: PersonalInfo = {
   name: 'Shamim Reza',
   title: 'GARMENTS IE REPORT, ERP & DATA ENTRY EXECUTIVE',
@@ -38,7 +40,7 @@ export const personalInfo: PersonalInfo = {
   phone: '+880 1700-000000',
   whatsapp: '+880 1700-000000',
   linkedin: 'linkedin.com/in/shamim-reza-ie',
-  profilePhotoUrl: '', // Displays high-end executive portrait badge, or upload anytime
+  profilePhotoUrl: '/profile-photo.svg', // High-end executive portrait asset, loads on Vercel/Cloudflare across all devices
 };
 
 export const statistics: StatItem[] = [

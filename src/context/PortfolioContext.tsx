@@ -141,7 +141,14 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return {
           ...defaultState,
           ...parsed,
-          personalInfo: { ...defaultState.personalInfo, ...parsed.personalInfo },
+          personalInfo: {
+            ...defaultState.personalInfo,
+            ...parsed.personalInfo,
+            profilePhotoUrl:
+              parsed.personalInfo?.profilePhotoUrl && parsed.personalInfo.profilePhotoUrl.trim() !== ''
+                ? parsed.personalInfo.profilePhotoUrl
+                : defaultState.personalInfo.profilePhotoUrl || '/profile-photo.svg',
+          },
           jobDescriptionData: {
             ...defaultState.jobDescriptionData,
             ...(parsed.jobDescriptionData || {}),

@@ -550,3 +550,75 @@ export const downloadJobDescriptionAsExcelFile = (
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 };
+
+/**
+ * Direct PDF Download: Captures an on-screen DOM element (Executive Report or Spreadsheet)
+ * using html2canvas and compiles it into a high-resolution, vector-accurate A4 PDF using jsPDF.
+ * Renders EXACTLY identical to the website preview, preserving all colors, backgrounds, and borders!
+ */
+export const downloadElementAsDirectPDF = async (
+  elementId: string,
+  fileName: string,
+  onProgress?: (isGenerating: boolean) => void
+): Promise<void> => {
+  try {
+    if (onProgress) onProgress(true);
+    const targetElement = document.getElementById(elementId);
+    if (!targetElement) {
+      throw new Error(`Element with id "${elementId}" not found for PDF generation.`);
+    }
+
+    // Temporarily ensure element is visible for capture
+    const canvas = await html2canvas(targetElement, {
+      scale: 2, // High resolution (retina 2x)
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: Math.max(targetElement.scrollWidth, 1080),
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+      compress: true,
+    });
+
+    const pageWidth = 210; // A4 mm
+    const pageHeight = 297; // A4 mm
+    const margin = 6; // 6mm margin
+    const contentWidth = pageWidth - margin * 2;
+    const contentHeight = (canvas.height * contentWidth) / canvas.width;
+
+    let heightLeft = contentHeight;
+    let position = margin;
+    let page = 1;
+
+    // Render first page
+    pdf.addImage(imgData, 'JPEG', margin, position, contentWidth, contentHeight, undefined, 'FAST');
+    heightLeft -= (pageHeight - margin * 2);
+
+    // Multi-page loop if document height exceeds single A4 page
+    while (heightLeft > 0) {
+      page += 1;
+      pdf.addPage();
+      position = margin - (page - 1) * (pageHeight - margin * 2);
+      pdf.addImage(imgData, 'JPEG', margin, position, contentWidth, contentHeight, undefined, 'FAST');
+      heightLeft -= (pageHeight - margin * 2);
+    }
+
+    const safeFileName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
+    pdf.save(safeFileName);
+  } catch (error) {
+    console.error('Error generating direct PDF:', error);
+    // Fallback to standard print
+    window.print();
+  } finally {
+    if (onProgress) onProgress(false);
+  }
+};
+

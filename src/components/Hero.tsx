@@ -24,6 +24,11 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
   const { theme } = useTheme();
   const { openCVModal, openJDModal } = usePortfolio();
   const [photoError, setPhotoError] = useState(false);
+  const [fallbackToSvg, setFallbackToSvg] = useState(false);
+
+  const displayPhoto = fallbackToSvg
+    ? '/profile-photo.svg'
+    : personalInfo.profilePhotoUrl || '/profile-photo.svg';
 
   const headlineWords = personalInfo.headline.split(' ');
   const nameWords = (personalInfo.name || 'Shamim Reza').toUpperCase().split(' ');
@@ -360,11 +365,17 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
                   }`}
                 >
                   
-                  {personalInfo.profilePhotoUrl && !photoError ? (
+                  {displayPhoto && !photoError ? (
                     <img
-                      src={personalInfo.profilePhotoUrl}
-                      alt={`${personalInfo.name} - Data Entry Executive`}
-                      onError={() => setPhotoError(true)}
+                      src={displayPhoto}
+                      alt={`${personalInfo.name} - Garments IE Executive`}
+                      onError={() => {
+                        if (!fallbackToSvg && displayPhoto !== '/profile-photo.svg') {
+                          setFallbackToSvg(true);
+                        } else {
+                          setPhotoError(true);
+                        }
+                      }}
                       className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
                     />
                   ) : (

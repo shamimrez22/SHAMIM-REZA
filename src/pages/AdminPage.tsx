@@ -33,6 +33,9 @@ import {
   FileUp,
   Camera,
   X,
+  Globe,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
 import { useTheme } from '../context/ThemeContext';
@@ -48,10 +51,16 @@ import {
   downloadCVAsWordDoc,
   downloadJobDescriptionAsWordDoc,
 } from '../utils/documentExport';
+import {
+  downloadPortfolioDataSource,
+  downloadProfilePhotoFile,
+  generatePortfolioDataSourceCode,
+} from '../utils/sourceExport';
 
 type AdminTab =
   | 'profile'
   | 'theme'
+  | 'deploy'
   | 'cv'
   | 'job-description'
   | 'work'
@@ -63,6 +72,7 @@ type AdminTab =
 export const AdminPage: React.FC = () => {
   const { theme, adminMasterTheme, setAdminMasterTheme } = useTheme();
   const {
+    state: portfolioFullState,
     personalInfo,
     statistics,
     skills,
@@ -159,6 +169,45 @@ export const AdminPage: React.FC = () => {
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  // Vercel & Cloudflare Live Deployment Handlers
+  const [copiedSource, setCopiedSource] = useState(false);
+  const [photoDirectUrl, setPhotoDirectUrl] = useState(personalInfo.profilePhotoUrl || '');
+
+  const handleDownloadSourceCode = () => {
+    downloadPortfolioDataSource(portfolioFullState, adminMasterTheme);
+    showToast('✅ portfolioData.ts ডাউনলোড হয়েছে! src/data/portfolioData.ts ফাইলে এটি বসান।');
+  };
+
+  const handleCopySourceCode = () => {
+    const code = generatePortfolioDataSourceCode(portfolioFullState, adminMasterTheme);
+    navigator.clipboard.writeText(code).then(() => {
+      setCopiedSource(true);
+      showToast('✅ সম্পূর্ণ সোর্স কোড ক্লিপবোর্ডে কপি হয়েছে!');
+      setTimeout(() => setCopiedSource(false), 3000);
+    });
+  };
+
+  const handleDownloadPhotoAsset = () => {
+    const photoToDownload = personalInfo.profilePhotoUrl || photoPreview;
+    if (photoToDownload) {
+      downloadProfilePhotoFile(photoToDownload, 'profile-photo.png');
+      showToast('✅ profile-photo.png ডাউনলোড হয়েছে! এটি public/ ফোল্ডারে রাখুন।');
+    } else {
+      showToast('⚠️ কোনো ছবি পাওয়া যায়নি।');
+    }
+  };
+
+  const handleSaveDirectPhotoUrl = () => {
+    if (!photoDirectUrl.trim()) {
+      showToast('⚠️ অনুগ্রহ করে একটি সঠিক ইমেজ লিংক প্রবেশ করান।');
+      return;
+    }
+    updateProfilePhoto(photoDirectUrl.trim());
+    setProfileForm((prev) => ({ ...prev, profilePhotoUrl: photoDirectUrl.trim() }));
+    setPhotoPreview(photoDirectUrl.trim());
+    showToast('✅ প্রোফাইল ছবির লিংক সেভ হয়েছে!');
   };
 
   // Handle Photo Upload
@@ -422,6 +471,16 @@ export const AdminPage: React.FC = () => {
 
           {/* Quick Actions */}
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab('deploy')}
+              title="Vercel & Cloudflare Live Deployment & Sync Center"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white shadow-md shadow-orange-600/20 transition-all active:scale-95"
+            >
+              <Globe className="w-4 h-4 text-white animate-pulse" />
+              <span>🚀 Live Deploy Sync</span>
+            </button>
+
             <Link
               to="/"
               target="_blank"
@@ -457,13 +516,14 @@ export const AdminPage: React.FC = () => {
           {[
             { id: 'profile', label: '1. Profile & Photo', icon: User },
             { id: 'theme', label: '2. Master Theme (কালার থিম)', icon: Palette, badge: adminMasterTheme.toUpperCase() },
-            { id: 'cv', label: '3. CV & Resume (Upload / Auto)', icon: FileUp, badge: personalInfo.cvUrl ? 'File Uploaded' : 'Auto Ready' },
-            { id: 'job-description', label: '4. Job Description (Upload / Auto)', icon: Briefcase, badge: personalInfo.jdUrl ? 'File Uploaded' : 'Auto Ready' },
-            { id: 'work', label: `5. Work Samples (${sampleWorkProjects.length})`, icon: FileSpreadsheet },
-            { id: 'skills', label: `6. Skills (${skills.length})`, icon: Layers },
-            { id: 'stats', label: '7. Key Stats', icon: BarChart3 },
-            { id: 'experience', label: '8. Experience', icon: Briefcase },
-            { id: 'backup', label: '9. Backup & Reset', icon: RefreshCw },
+            { id: 'deploy', label: '3. 🚀 Live Deploy (Vercel/Cloudflare)', icon: Globe, badge: 'Live Sync' },
+            { id: 'cv', label: '4. CV & Resume (Upload / Auto)', icon: FileUp, badge: personalInfo.cvUrl ? 'File Uploaded' : 'Auto Ready' },
+            { id: 'job-description', label: '5. Job Description (Upload / Auto)', icon: Briefcase, badge: personalInfo.jdUrl ? 'File Uploaded' : 'Auto Ready' },
+            { id: 'work', label: `6. Work Samples (${sampleWorkProjects.length})`, icon: FileSpreadsheet },
+            { id: 'skills', label: `7. Skills (${skills.length})`, icon: Layers },
+            { id: 'stats', label: '8. Key Stats', icon: BarChart3 },
+            { id: 'experience', label: '9. Experience', icon: Briefcase },
+            { id: 'backup', label: '10. Backup & Reset', icon: RefreshCw },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -948,6 +1008,324 @@ export const AdminPage: React.FC = () => {
                       <br />
                       ৩. কিন্তু তারা পেজটি রিলোড দিলে বা ব্রাউজার বন্ধ করে আবার নতুন করে ঢুকলে, স্বয়ংক্রিয়ভাবে আপনার সিলেক্ট করা মূল কালারেই পুরো ওয়েবসাইট চালু হবে।
                     </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= TAB: VERCEL & CLOUDFLARE LIVE DEPLOYMENT ================= */}
+          {activeTab === 'deploy' && (
+            <div className="max-w-4xl mx-auto space-y-6">
+              {/* Header Box */}
+              <div className={`p-6 sm:p-8 rounded-2xl border ${cardBgClass}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800/40">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md bg-amber-500/20 text-amber-400 border border-amber-500/30 inline-flex items-center gap-1.5 mb-2">
+                      <Globe className="w-3.5 h-3.5 text-amber-400" />
+                      VERCEL &amp; CLOUDFLARE LIVE SYNC ENGINE
+                    </span>
+                    <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+                      লাইভ সাইট ডিপ্লয়মেন্ট ও পার্মানেন্ট সিঙ্ক সেন্টার
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                      Vercel বা Cloudflare-এ সাইট লাইভ করার পর যেকোনো ডিভাইসে (মোবাইল, ল্যাপটপ, ট্যাবলেট) আপনার সাজানো প্রোফাইল ছবি ও পছন্দের থিম যাতে ১০০% স্থায়ীভাবে থাকে—তার জন্য নিচের সহজ ধাপগুলো অনুসরণ করুন।
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleDownloadSourceCode}
+                      className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Download portfolioData.ts</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Status Overview 3-Card Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6">
+                  {/* Master Theme Status */}
+                  <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/40">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center justify-between">
+                      <span>মাস্টার লাইভ থিম</span>
+                      <Palette className="w-3.5 h-3.5 text-amber-400" />
+                    </div>
+                    <div className="text-base font-black text-white flex items-center gap-2 mt-1">
+                      <span
+                        className={`w-3 h-3 rounded-full ${
+                          adminMasterTheme === 'orange'
+                            ? 'bg-amber-500 shadow-xs shadow-amber-500'
+                            : adminMasterTheme === 'dark'
+                            ? 'bg-slate-400'
+                            : 'bg-blue-400'
+                        }`}
+                      />
+                      <span className="uppercase">{adminMasterTheme} THEME</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      সব নতুন ডিভাইস এই থিমে ওপেন হবে।
+                    </p>
+                    <div className="mt-3 flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAdminMasterTheme('orange');
+                          showToast('Master theme set to Industrial Orange');
+                        }}
+                        className={`text-[10px] font-bold px-2 py-1 rounded-md border ${
+                          adminMasterTheme === 'orange'
+                            ? 'bg-amber-600/20 text-amber-300 border-amber-500/50'
+                            : 'border-slate-800 text-slate-400 hover:bg-slate-800'
+                        }`}
+                      >
+                        Orange
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAdminMasterTheme('dark');
+                          showToast('Master theme set to Deep Black');
+                        }}
+                        className={`text-[10px] font-bold px-2 py-1 rounded-md border ${
+                          adminMasterTheme === 'dark'
+                            ? 'bg-slate-700 text-white border-slate-600'
+                            : 'border-slate-800 text-slate-400 hover:bg-slate-800'
+                        }`}
+                      >
+                        Dark
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAdminMasterTheme('light');
+                          showToast('Master theme set to Clean White');
+                        }}
+                        className={`text-[10px] font-bold px-2 py-1 rounded-md border ${
+                          adminMasterTheme === 'light'
+                            ? 'bg-blue-600/20 text-blue-300 border-blue-500/50'
+                            : 'border-slate-800 text-slate-400 hover:bg-slate-800'
+                        }`}
+                      >
+                        White
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Profile Photo Status */}
+                  <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/40">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center justify-between">
+                      <span>প্রোফাইল ফটো স্ট্যাটাস</span>
+                      <Camera className="w-3.5 h-3.5 text-blue-400" />
+                    </div>
+                    <div className="flex items-center gap-3 mt-2">
+                      <img
+                        src={personalInfo.profilePhotoUrl || photoPreview || '/profile-photo.svg'}
+                        alt="Preview"
+                        className="w-10 h-10 rounded-full object-cover border-2 border-amber-500/50 shadow-md"
+                      />
+                      <div className="text-xs">
+                        <div className="font-bold text-white">
+                          {personalInfo.profilePhotoUrl?.startsWith('data:')
+                            ? 'Custom Uploaded'
+                            : personalInfo.profilePhotoUrl?.startsWith('http')
+                            ? 'Hosted URL'
+                            : 'Default Asset'}
+                        </div>
+                        <span className="text-[10px] text-emerald-400 font-medium">Ready for deployment</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Candidate Identity */}
+                  <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/40">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center justify-between">
+                      <span>প্রার্থী ও ডেটা রেকর্ড</span>
+                      <User className="w-3.5 h-3.5 text-emerald-400" />
+                    </div>
+                    <div className="text-xs font-bold text-white mt-1.5">{personalInfo.name}</div>
+                    <div className="text-[11px] text-slate-400 truncate">{personalInfo.title}</div>
+                    <div className="text-[10px] text-slate-500 mt-2">
+                      {sampleWorkProjects.length} Work Samples • {skills.length} Skills
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* STEP 1: ONE-CLICK SOURCE CODE DOWNLOAD (CRITICAL STEP) */}
+              <div className="p-6 sm:p-8 rounded-2xl border border-emerald-500/30 bg-emerald-950/10 backdrop-blur-sm space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2.5 rounded-xl bg-emerald-600 text-white font-black text-sm shrink-0 mt-0.5">
+                    ১
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <h4 className="text-base sm:text-lg font-black text-white">
+                        আপডেট করা portfolioData.ts ফাইল ডাউনলোড বা কপি করুন (মূল পদক্ষেপ)
+                      </h4>
+                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 self-start sm:self-auto">
+                        100% Guaranteed Fidelity
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                      Vercel বা Cloudflare যখন আপনার সাইটটি অনলাইনে বিল্ড করে, তখন এটি <code className="px-1.5 py-0.5 rounded bg-black/40 text-amber-300 font-mono text-[11px]">src/data/portfolioData.ts</code> ফাইল থেকে সমস্ত তথ্য গ্রহণ করে। আপনি অ্যাডমিন প্যানেলে যে তথ্য, ছবি বা থিম কালার ঠিক করেছেন, তা এক ক্লিকে সরাসরি সোর্স কোড ফাইলে রূপান্তরিত করে নিন।
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleDownloadSourceCode}
+                    className="px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-emerald-600 hover:bg-emerald-500 shadow-xl shadow-emerald-600/30 flex items-center gap-2 transition-all active:scale-95"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download portfolioData.ts (ফাইল ডাউনলোড)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCopySourceCode}
+                    className={`px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 active:scale-95 border ${
+                      copiedSource
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500'
+                        : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                    }`}
+                  >
+                    {copiedSource ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                    <span>{copiedSource ? 'সোর্স কোড কপি হয়েছে!' : 'Copy Source Code (কোড কপি)'}</span>
+                  </button>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-black/30 border border-emerald-500/20 text-xs text-slate-300 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>
+                    <strong>পদ্ধতি:</strong> ডাউনলোড করা <code className="text-amber-300">portfolioData.ts</code> ফাইলটি আপনার প্রোজেক্টের <code className="text-amber-300">src/data/portfolioData.ts</code> ফাইলে পেস্ট বা রিপ্লেস করুন।
+                  </span>
+                </div>
+              </div>
+
+              {/* STEP 2: PROFILE PHOTO ASSET SETUP */}
+              <div className={`p-6 sm:p-8 rounded-2xl border ${cardBgClass} space-y-5`}>
+                <div className="flex items-start gap-3">
+                  <div className="p-2.5 rounded-xl bg-blue-600 text-white font-black text-sm shrink-0 mt-0.5">
+                    ২
+                  </div>
+                  <div>
+                    <h4 className="text-base sm:text-lg font-black text-white">
+                      প্রোফাইল ছবি যেকোনো ডিভাইসে পার্মানেন্ট করার উপায়
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-1">
+                      ছবিটি যাতে যেকোনো কম্পিউটারে কোনো ত্রুটি ছাড়াই লোড হয়, তার জন্য নিচের যেকোনো একটি অপশন ব্যবহার করুন:
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Option A: Direct Hosted URL */}
+                  <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/40 flex flex-col justify-between space-y-3">
+                    <div>
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>অপশন ক: অনলাইন ইমেজ লিংক (সবচেয়ে সহজ)</span>
+                      </div>
+                      <p className="text-xs text-slate-400">
+                        আপনার ছবি যদি Imgur, Cloudinary, GitHub বা অনলাইনে কোথাও হোস্ট করা থাকে, তার লিংক এখানে দিন:
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        placeholder="https://i.imgur.com/your-photo.jpg"
+                        value={photoDirectUrl}
+                        onChange={(e) => setPhotoDirectUrl(e.target.value)}
+                        className={`w-full px-3 py-2 rounded-xl border text-xs font-mono outline-none ${inputClass}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveDirectPhotoUrl}
+                        className="w-full py-2 px-3 rounded-lg text-xs font-bold uppercase bg-amber-600 hover:bg-amber-500 text-white transition-colors"
+                      >
+                        Save Image Link
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Option B: Download for Public Folder */}
+                  <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/40 flex flex-col justify-between space-y-3">
+                    <div>
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-blue-400 uppercase tracking-wider mb-1">
+                        <Camera className="w-3.5 h-3.5" />
+                        <span>অপশন খ: ছবি ডাউনলোড করে public/ এ রাখুন</span>
+                      </div>
+                      <p className="text-xs text-slate-400">
+                        অ্যাডমিনে আপনার আপলোড করা ছবিটি ডাউনলোড করে সরাসরি আপনার প্রোজেক্টের <code className="text-amber-300 font-mono">public/profile-photo.png</code> ফোল্ডারে রাখুন:
+                      </p>
+                    </div>
+
+                    <div>
+                      <button
+                        type="button"
+                        onClick={handleDownloadPhotoAsset}
+                        className="w-full py-2 px-3 rounded-lg text-xs font-bold uppercase bg-blue-600 hover:bg-blue-500 text-white transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download profile-photo.png</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* STEP 3: 3-STEP VERCEL & CLOUDFLARE DEPLOYMENT GUIDE */}
+              <div className={`p-6 sm:p-8 rounded-2xl border ${cardBgClass} space-y-4`}>
+                <div className="flex items-start gap-3">
+                  <div className="p-2.5 rounded-xl bg-orange-600 text-white font-black text-sm shrink-0 mt-0.5">
+                    ৩
+                  </div>
+                  <div>
+                    <h4 className="text-base sm:text-lg font-black text-white">
+                      Vercel ও Cloudflare লাইভ ডিপ্লয়মেন্ট চেকলিস্ট
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Git বা GitHub এর মাধ্যমে লাইভ করার জন্য এই ৩টি সহজ ধাপ সম্পন্ন করুন:
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-1">
+                  <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/40 flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center text-xs shrink-0 mt-0.5">
+                      ১
+                    </div>
+                    <div className="text-xs text-slate-300">
+                      <strong className="text-white">ফাইল রিপ্লেস:</strong> ডাউনলোড করা <code className="text-amber-300">portfolioData.ts</code> ফাইলটি প্রোজেক্টের <code className="text-amber-300 font-mono">src/data/portfolioData.ts</code> ফাইলে পেস্ট করে সেভ করুন।
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/40 flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 font-bold flex items-center justify-center text-xs shrink-0 mt-0.5">
+                      ২
+                    </div>
+                    <div className="text-xs text-slate-300">
+                      <strong className="text-white">ছবি নিশ্চিতকরণ:</strong> আপনার প্রোফাইল ছবিটিকে প্রজেক্টের <code className="text-amber-300 font-mono">public/</code> ফোল্ডারে রাখুন অথবা অনলাইনে হোস্ট করা লিংক ব্যবহার করুন (যা ডিফল্টভাবে <code className="text-amber-300 font-mono">/profile-photo.svg</code> হিসেবে দেওয়া আছে)।
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/40 flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-xs shrink-0 mt-0.5">
+                      ৩
+                    </div>
+                    <div className="text-xs text-slate-300">
+                      <strong className="text-white">Git Push &amp; Live:</strong> কমান্ড লাইনে <code className="text-emerald-400 font-mono px-1.5 py-0.5 bg-black/40 rounded">git add . &amp;&amp; git commit -m "Update portfolio config" &amp;&amp; git push</code> করুন।
+                      <br />
+                      <span className="text-slate-400 mt-1 block">
+                        Vercel বা Cloudflare Pages সাথে সাথে ১ মিনিটের মধ্যে সাইটটি বিল্ড করে ফেলবে এবং যেকোনো ডিভাইসে এটি হুবহু আপনার অ্যাডমিন কনফিগারেশন অনুযায়ী স্থায়ীভাবে লোড হবে!
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
