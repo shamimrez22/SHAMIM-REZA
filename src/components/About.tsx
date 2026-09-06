@@ -219,17 +219,29 @@ export const About: React.FC<AboutProps> = ({ personalInfo }) => {
                     : 'border-slate-200 dark:border-slate-800'
                 }`}
               >
-                <div>
-                  <span
-                    className={`text-[11px] font-bold tracking-widest uppercase ${
-                      theme === 'orange' ? 'text-orange-400' : 'text-blue-500'
-                    }`}
-                  >
-                    CREDENTIAL SUMMARY
-                  </span>
-                  <h4 className="text-lg font-extrabold tracking-tight mt-0.5">
-                    Executive Profile Card
-                  </h4>
+                <div className="flex items-center gap-3.5">
+                  {personalInfo.profilePhotoUrl && (
+                    <img
+                      src={personalInfo.profilePhotoUrl}
+                      alt={personalInfo.name}
+                      className="w-12 h-12 rounded-full object-cover object-top border-2 border-orange-500/60 shadow-md shrink-0"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  )}
+                  <div>
+                    <span
+                      className={`text-[11px] font-bold tracking-widest uppercase ${
+                        theme === 'orange' ? 'text-orange-400' : 'text-blue-500'
+                      }`}
+                    >
+                      CREDENTIAL SUMMARY
+                    </span>
+                    <h4 className="text-lg font-extrabold tracking-tight mt-0.5">
+                      Executive Profile Card
+                    </h4>
+                  </div>
                 </div>
                 <div
                   className={`w-3 h-3 rounded-full ring-4 ${

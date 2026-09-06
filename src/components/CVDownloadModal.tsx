@@ -295,16 +295,28 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
                 <div className="space-y-6">
                   {/* Top Header */}
                   <div className="border-b-2 border-slate-900 pb-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                      <h1 className="text-2xl sm:text-3xl font-black text-slate-950 uppercase tracking-tight">
-                        {personalInfo.name}
-                      </h1>
-                      <div className="text-sm font-extrabold text-blue-700 tracking-wide uppercase mt-0.5">
-                        {personalInfo.title}
+                    <div className="flex items-center gap-4">
+                      {personalInfo.profilePhotoUrl && (
+                        <img
+                          src={personalInfo.profilePhotoUrl}
+                          alt={personalInfo.name}
+                          className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover object-top border-2 border-slate-300 shadow-sm shrink-0"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <div>
+                        <h1 className="text-2xl sm:text-3xl font-black text-slate-950 uppercase tracking-tight">
+                          {personalInfo.name}
+                        </h1>
+                        <div className="text-sm font-extrabold text-blue-700 tracking-wide uppercase mt-0.5">
+                          {personalInfo.title}
+                        </div>
+                        <p className="text-xs text-slate-600 mt-1 max-w-xl">
+                          {personalInfo.headline}
+                        </p>
                       </div>
-                      <p className="text-xs text-slate-600 mt-1 max-w-xl">
-                        {personalInfo.headline}
-                      </p>
                     </div>
 
                     {/* Contact details */}

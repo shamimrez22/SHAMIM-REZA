@@ -56,6 +56,7 @@ import {
   downloadProfilePhotoFile,
   generatePortfolioDataSourceCode,
 } from '../utils/sourceExport';
+import { compressImageFile, uploadToImgBB } from '../utils/imageUpload';
 
 type AdminTab =
   | 'profile'
@@ -174,6 +175,11 @@ export const AdminPage: React.FC = () => {
   // Vercel & Cloudflare Live Deployment Handlers
   const [copiedSource, setCopiedSource] = useState(false);
   const [photoDirectUrl, setPhotoDirectUrl] = useState(personalInfo.profilePhotoUrl || '');
+  const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+  const [isUploadingToCloud, setIsUploadingToCloud] = useState(false);
+  const [imgbbApiKey, setImgbbApiKey] = useState(
+    () => localStorage.getItem('imgbb_api_key') || ''
+  );
 
   const handleDownloadSourceCode = () => {
     downloadPortfolioDataSource(portfolioFullState, adminMasterTheme);
@@ -207,11 +213,11 @@ export const AdminPage: React.FC = () => {
     updateProfilePhoto(photoDirectUrl.trim());
     setProfileForm((prev) => ({ ...prev, profilePhotoUrl: photoDirectUrl.trim() }));
     setPhotoPreview(photoDirectUrl.trim());
-    showToast('✅ প্রোফাইল ছবির লিংক সেভ হয়েছে!');
+    showToast('✅ প্রোফাইল ছবির লিংক সেভ হয়েছে এবং সব পেজে লাইভ হয়েছে!');
   };
 
-  // Handle Photo Upload
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle Photo Upload (with intelligent mobile canvas auto-compression)
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -220,20 +226,69 @@ export const AdminPage: React.FC = () => {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      setPhotoPreview(result);
-      setProfileForm((prev) => ({ ...prev, profilePhotoUrl: result }));
-      updateProfilePhoto(result);
-      showToast('✅ Profile photo updated successfully!');
-    };
-    reader.readAsDataURL(file);
+    setIsProcessingPhoto(true);
+    try {
+      // Auto-compress on client side: reduces heavy phone camera photos to ~60-90KB crisp JPEG
+      const compressed = await compressImageFile(file, {
+        maxWidth: 850,
+        maxHeight: 850,
+        quality: 0.85,
+      });
+
+      setPhotoPreview(compressed.dataUrl);
+      setProfileForm((prev) => ({ ...prev, profilePhotoUrl: compressed.dataUrl }));
+      updateProfilePhoto(compressed.dataUrl);
+      showToast(
+        `✅ প্রোফাইল ছবি অপ্টিমাইজড ও সেভ হয়েছে (${compressed.sizeKb} KB - মোবাইল ও পিসির জন্য লাইভ)!`
+      );
+    } catch (err) {
+      console.warn('Canvas compression fallback to FileReader', err);
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        setPhotoPreview(result);
+        setProfileForm((prev) => ({ ...prev, profilePhotoUrl: result }));
+        updateProfilePhoto(result);
+        showToast('✅ Profile photo updated successfully!');
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsProcessingPhoto(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  // Handle Cloud Upload to make permanent global HTTPS link across all devices
+  const handleCloudUpload = async () => {
+    const photoToUpload = photoPreview || personalInfo.profilePhotoUrl;
+    if (!photoToUpload || photoToUpload === '/profile-photo.svg') {
+      showToast('⚠️ অনুগ্রহ করে প্রথমে আপনার মোবাইল বা পিসি থেকে একটি ছবি আপলোড করুন।');
+      return;
+    }
+
+    setIsUploadingToCloud(true);
+    try {
+      const res = await uploadToImgBB(photoToUpload, imgbbApiKey.trim() || undefined);
+      if (res.success && res.url) {
+        setPhotoDirectUrl(res.url);
+        setPhotoPreview(res.url);
+        setProfileForm((prev) => ({ ...prev, profilePhotoUrl: res.url }));
+        updateProfilePhoto(res.url);
+        showToast('🚀 গ্লোবাল ক্লাউড লিংক তৈরি হয়েছে! যেকোনো ডিভাইসে এখন রিয়েল-টাইম লাইভ দেখাবে!');
+      } else {
+        showToast(`⚠️ ক্লাউড আপলোড এরর: ${res.error || 'Upload error'}`);
+      }
+    } catch (err: any) {
+      showToast('⚠️ ক্লাউড সার্ভার এরর: সরাসরি ইমেজ URL ইনপুট দিতে পারেন।');
+    } finally {
+      setIsUploadingToCloud(false);
+    }
   };
 
   // Handle Photo Remove
   const handlePhotoRemove = () => {
     setPhotoPreview('');
+    setPhotoDirectUrl('');
     setProfileForm((prev) => ({ ...prev, profilePhotoUrl: '' }));
     removeProfilePhoto();
     showToast('Profile photo removed.');
@@ -576,7 +631,7 @@ export const AdminPage: React.FC = () => {
                   {/* Photo Preview Container */}
                   <div className="flex flex-col items-center text-center">
                     <div
-                      className={`w-44 h-44 rounded-full overflow-hidden border-4 shadow-xl mb-4 relative flex items-center justify-center ${
+                      className={`w-44 h-44 rounded-full overflow-hidden border-4 shadow-xl mb-3 relative flex items-center justify-center ${
                         theme === 'orange'
                           ? 'border-orange-600 bg-orange-950/40'
                           : 'border-blue-500 bg-slate-800'
@@ -594,9 +649,38 @@ export const AdminPage: React.FC = () => {
                           <span className="text-xs font-bold text-slate-400">No Image Uploaded</span>
                         </div>
                       )}
+
+                      {/* Loading Overlays */}
+                      {(isProcessingPhoto || isUploadingToCloud) && (
+                        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs flex flex-col items-center justify-center text-white p-2">
+                          <RefreshCw className="w-6 h-6 animate-spin text-emerald-400 mb-1" />
+                          <span className="text-[10px] font-bold">
+                            {isProcessingPhoto ? 'Compressing...' : 'Uploading Cloud...'}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Upload Controls */}
+                    {/* Image Status Pill */}
+                    <div className="mb-4">
+                      <span
+                        className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
+                          photoPreview?.startsWith('http')
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                            : photoPreview?.startsWith('data:')
+                            ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                        }`}
+                      >
+                        {photoPreview?.startsWith('http')
+                          ? '🌐 Global Cloud Hosted'
+                          : photoPreview?.startsWith('data:')
+                          ? '⚡ Mobile Auto-Optimized'
+                          : 'Standard Default Photo'}
+                      </span>
+                    </div>
+
+                    {/* Hidden Upload Controls */}
                     <input
                       type="file"
                       ref={photoInputRef}
@@ -605,15 +689,35 @@ export const AdminPage: React.FC = () => {
                       className="hidden"
                     />
 
-                    <div className="flex flex-col gap-2 w-full">
+                    {/* Primary Actions */}
+                    <div className="flex flex-col gap-2.5 w-full">
                       <button
                         type="button"
+                        disabled={isProcessingPhoto}
                         onClick={() => photoInputRef.current?.click()}
                         className={`w-full py-2.5 px-4 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 ${primaryBtnClass}`}
                       >
-                        <Upload className="w-4 h-4" />
-                        <span>Upload New Photo</span>
+                        <Camera className="w-4 h-4" />
+                        <span>
+                          {isProcessingPhoto ? 'Processing...' : 'Upload / Take Photo (ক্যামেরা/ফাইল)'}
+                        </span>
                       </button>
+
+                      {/* Make Global Live Button */}
+                      {photoPreview && !photoPreview.startsWith('http') && (
+                        <button
+                          type="button"
+                          disabled={isUploadingToCloud}
+                          onClick={handleCloudUpload}
+                          className="w-full py-2 px-3 text-xs font-bold rounded-xl border border-emerald-500/40 bg-emerald-950/30 hover:bg-emerald-900/40 text-emerald-300 transition-all flex items-center justify-center gap-2"
+                          title="Generate a global permanent HTTPS link so every device sees this photo instantly"
+                        >
+                          <Globe className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>
+                            {isUploadingToCloud ? 'Uploading...' : '🌐 Make Permanent Live (ImgBB)'}
+                          </span>
+                        </button>
+                      )}
 
                       {photoPreview && (
                         <button
@@ -626,9 +730,42 @@ export const AdminPage: React.FC = () => {
                       )}
                     </div>
 
-                    <p className="text-[11px] text-slate-400 mt-3">
-                      JPG, PNG, or WebP. Changes reflect immediately on Home &amp; About sections.
-                    </p>
+                    {/* Direct Image URL Input (Alternative for cross-device live link) */}
+                    <div className="w-full mt-4 pt-4 border-t border-slate-800/60 text-left">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1.5">
+                        <Globe className="w-3 h-3 text-blue-400" />
+                        <span>Direct Cloud Image URL (সরাসরি ইমেজ লিংক)</span>
+                      </label>
+                      <div className="flex gap-1.5">
+                        <input
+                          type="url"
+                          placeholder="https://i.ibb.co/... or https://..."
+                          value={photoDirectUrl}
+                          onChange={(e) => setPhotoDirectUrl(e.target.value)}
+                          className={`flex-1 px-3 py-1.5 rounded-lg border text-xs font-mono outline-none ${inputClass}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSaveDirectPhotoUrl}
+                          className="px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-all whitespace-nowrap"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        Google Drive direct, Imgur, ImgBB, বা Cloudinary লিংক দিতে পারেন।
+                      </p>
+                    </div>
+
+                    <div className="mt-4 p-3 rounded-xl bg-slate-900/50 border border-slate-800 text-left text-[11px] text-slate-400 space-y-1">
+                      <div className="font-bold text-slate-300 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <span>যেকোনো ডিভাইস থেকে লাইভ আপডেট:</span>
+                      </div>
+                      <p>
+                        মোবাইলের ক্যামেরা দিয়ে ছবি তুললেও তা স্বয়ংক্রিয়ভাবে ক্রপ ও হাই-স্পিড রেজ্যুলেশনে অপ্টিমাইজ হয়ে যায়। হোমপেজ, নেভবার ও সিভি-তে সাথে সাথে প্রদর্শিত হবে।
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -133,21 +133,28 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isJDModalOpen, setIsJDModalOpen] = useState(false);
 
   const [state, setState] = useState<PortfolioFullState>(() => {
+    // 0. High priority dedicated profile photo cache
+    const dedicatedPhoto = localStorage.getItem('portfolio_profile_photo');
+
     // 1. Try loading full state from localStorage
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        const resolvedPhoto =
+          dedicatedPhoto && dedicatedPhoto.trim() !== ''
+            ? dedicatedPhoto
+            : parsed.personalInfo?.profilePhotoUrl && parsed.personalInfo.profilePhotoUrl.trim() !== ''
+            ? parsed.personalInfo.profilePhotoUrl
+            : defaultState.personalInfo.profilePhotoUrl || '/profile-photo.svg';
+
         return {
           ...defaultState,
           ...parsed,
           personalInfo: {
             ...defaultState.personalInfo,
             ...parsed.personalInfo,
-            profilePhotoUrl:
-              parsed.personalInfo?.profilePhotoUrl && parsed.personalInfo.profilePhotoUrl.trim() !== ''
-                ? parsed.personalInfo.profilePhotoUrl
-                : defaultState.personalInfo.profilePhotoUrl || '/profile-photo.svg',
+            profilePhotoUrl: resolvedPhoto,
           },
           jobDescriptionData: {
             ...defaultState.jobDescriptionData,
@@ -213,10 +220,24 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const updateProfilePhoto = (urlOrBase64: string) => {
+    try {
+      if (urlOrBase64 && urlOrBase64.trim() !== '') {
+        localStorage.setItem('portfolio_profile_photo', urlOrBase64);
+      } else {
+        localStorage.removeItem('portfolio_profile_photo');
+      }
+    } catch (e) {
+      console.warn('Failed to save to portfolio_profile_photo cache', e);
+    }
     updatePersonalInfo({ profilePhotoUrl: urlOrBase64 });
   };
 
   const removeProfilePhoto = () => {
+    try {
+      localStorage.removeItem('portfolio_profile_photo');
+    } catch (e) {
+      console.warn('Failed to remove portfolio_profile_photo cache', e);
+    }
     updatePersonalInfo({ profilePhotoUrl: '' });
   };
 

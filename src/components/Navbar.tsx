@@ -109,9 +109,21 @@ export const Navbar: React.FC<NavbarProps> = ({ personalInfo }) => {
             title="🛡️ Admin Panel (লোগোতে ক্লিক করে সরাসরি অ্যাডমিন প্যানেলে প্রবেশ করুন)"
           >
             <div
-              className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${brandIconGradient} flex items-center justify-center text-white font-bold shadow-md group-hover:scale-105 group-hover:shadow-lg transition-all`}
+              className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${brandIconGradient} flex items-center justify-center text-white font-bold shadow-md group-hover:scale-105 group-hover:shadow-lg transition-all overflow-hidden border border-white/10`}
             >
-              <FileSpreadsheet className="w-5 h-5" />
+              {personalInfo.profilePhotoUrl ? (
+                <img
+                  src={personalInfo.profilePhotoUrl}
+                  alt={personalInfo.name}
+                  className="w-full h-full object-cover object-top"
+                  onError={(e) => {
+                    // Fallback to svg icon if error
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <FileSpreadsheet className="w-5 h-5" />
+              )}
             </div>
 
             <div className="flex flex-col">
