@@ -120,7 +120,7 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
               className="flex items-center gap-2 pt-1"
             >
               <span
-                className={`text-sm sm:text-base font-black uppercase tracking-widest ${
+                className={`text-sm sm:text-base font-extrabold uppercase tracking-normal ${
                   theme === 'orange'
                     ? 'text-orange-400'
                     : theme === 'dark'
@@ -128,7 +128,7 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
                     : 'text-blue-600'
                 }`}
               >
-                HELLO, I&apos;M
+                ASSALAMU ALAIKUM, I&apos;M
               </span>
             </motion.div>
 
