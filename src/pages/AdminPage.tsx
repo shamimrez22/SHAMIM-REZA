@@ -37,7 +37,16 @@ import {
   Copy,
   Check,
   Images,
+  LogOut,
+  Key,
 } from 'lucide-react';
+import { AdminLoginGate } from '../components/AdminLoginGate';
+import { AdminSecuritySettings } from '../components/AdminSecuritySettings';
+import {
+  isUserAdminAuthenticated,
+  logoutAdminUser,
+  getAdminCredentials,
+} from '../utils/adminAuth';
 import { usePortfolio } from '../context/PortfolioContext';
 import { useTheme } from '../context/ThemeContext';
 import {
@@ -77,6 +86,7 @@ type AdminTab =
   | 'skills'
   | 'stats'
   | 'experience'
+  | 'security'
   | 'backup';
 
 export const AdminPage: React.FC = () => {
@@ -120,6 +130,18 @@ export const AdminPage: React.FC = () => {
     exportBackup,
     importBackup,
   } = usePortfolio();
+
+  // Admin Authentication State - Always prompts for password every time the user enters the admin page
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [activeAdminUser, setActiveAdminUser] = useState<string>(() => {
+    return localStorage.getItem('portfolio_admin_logged_user') || getAdminCredentials().username;
+  });
+
+  const handleLogout = () => {
+    logoutAdminUser();
+    setIsAuthenticated(false);
+    showToast('সফলভাবে লগআউট হয়েছেন।');
+  };
 
   const [activeTab, setActiveTab] = useState<AdminTab>('profile');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -704,6 +726,19 @@ export const AdminPage: React.FC = () => {
   const accentTextClass =
     theme === 'orange' ? 'text-orange-400' : 'text-blue-600 dark:text-cyan-400';
 
+  // If not authenticated, display the executive login security gate
+  if (!isAuthenticated) {
+    return (
+      <AdminLoginGate
+        onLoginSuccess={(username) => {
+          setIsAuthenticated(true);
+          setActiveAdminUser(username);
+          showToast(`স্বাগতম, ${username}! অ্যাডমিন প্যানেলে প্রবেশ অনুমোদিত।`);
+        }}
+      />
+    );
+  }
+
   return (
     <div className={`min-h-screen pt-24 pb-20 transition-colors duration-300 ${pageBgClass}`}>
       {/* Toast Notification */}
@@ -776,6 +811,37 @@ export const AdminPage: React.FC = () => {
               <ExternalLink className="w-3 h-3 text-slate-400" />
             </Link>
 
+            {/* Security & User Pill */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('security')}
+              title="অ্যাডমিন ক্রেডেনশিয়ালস ও পাসওয়ার্ড পরিবর্তন"
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border transition-all ${
+                activeTab === 'security'
+                  ? theme === 'orange'
+                    ? 'bg-orange-600 text-white border-orange-500'
+                    : 'bg-blue-600 text-white border-blue-500'
+                  : theme === 'dark' || theme === 'orange'
+                  ? 'border-slate-700 bg-slate-800/60 hover:bg-slate-800 text-slate-200'
+                  : 'border-slate-300 bg-white hover:bg-slate-100 text-slate-700'
+              }`}
+            >
+              <Key className="w-4 h-4 text-amber-400" />
+              <span className="hidden sm:inline">ইউজার: {activeAdminUser}</span>
+              <span className="sm:hidden">পাসওয়ার্ড</span>
+            </button>
+
+            {/* Logout Button */}
+            <button
+              type="button"
+              onClick={handleLogout}
+              title="অ্যাডমিন প্যানেল থেকে লগআউট করুন"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all active:scale-95"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">লগআউট</span>
+            </button>
+
             <button
               type="button"
               onClick={exportBackup}
@@ -804,7 +870,8 @@ export const AdminPage: React.FC = () => {
             { id: 'skills', label: `7. Skills (${skills.length})`, icon: Layers },
             { id: 'stats', label: '8. Key Stats', icon: BarChart3 },
             { id: 'experience', label: '9. Experience', icon: Briefcase },
-            { id: 'backup', label: '10. Backup & Reset', icon: RefreshCw },
+            { id: 'security', label: '10. Security & Password (লগইন পাসওয়ার্ড)', icon: ShieldCheck, badge: activeAdminUser },
+            { id: 'backup', label: '11. Backup & Reset', icon: RefreshCw },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -3202,6 +3269,11 @@ export const AdminPage: React.FC = () => {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* ================= TAB 10: ADMIN SECURITY & CREDENTIALS ================= */}
+          {activeTab === 'security' && (
+            <AdminSecuritySettings onLogout={handleLogout} showToast={showToast} />
           )}
         </div>
       </div>
