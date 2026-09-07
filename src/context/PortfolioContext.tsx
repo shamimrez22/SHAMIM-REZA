@@ -144,14 +144,23 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [state, setState] = useState<PortfolioFullState>(() => {
     // 0. High priority dedicated profile photo cache
     const dedicatedPhoto = localStorage.getItem('portfolio_profile_photo');
-    let cachedSlots: string[] = ['', '', '', '', ''];
+    const defaultSlots = defaultState.personalInfo.profilePhotoSlots && defaultState.personalInfo.profilePhotoSlots.length === 5
+      ? defaultState.personalInfo.profilePhotoSlots
+      : ['/profile-photo.jpg', '/profile-photo-slot-1.jpg', '', '/profile-photo-slot-3.jpg', '/profile-photo-slot-4.jpg'];
+
+    let cachedSlots: string[] = defaultSlots;
     try {
-      cachedSlots = normalizeSlots(JSON.parse(localStorage.getItem('portfolio_photo_slots') || '[]'));
+      const storedSlots = JSON.parse(localStorage.getItem('portfolio_photo_slots') || '[]');
+      if (Array.isArray(storedSlots) && storedSlots.some((s) => s && typeof s === 'string' && s.trim() !== '')) {
+        cachedSlots = normalizeSlots(storedSlots);
+      }
     } catch {
       // ignore
     }
     const cachedActive = parseInt(localStorage.getItem('portfolio_active_photo_slot') || '0', 10);
     const resolvedActive = !isNaN(cachedActive) && cachedActive >= 0 && cachedActive < 5 ? cachedActive : 0;
+
+    const baseDefaultPhoto = defaultState.personalInfo.profilePhotoUrl || '/profile-photo.jpg';
 
     // 1. Try loading full state from localStorage
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -159,14 +168,14 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       try {
         const parsed = JSON.parse(saved);
         const savedSlots = normalizeSlots(parsed.personalInfo?.profilePhotoSlots);
-        const resolvedSlots = cachedSlots.some((s) => s) ? cachedSlots : savedSlots;
+        const resolvedSlots = cachedSlots.some((s) => s) ? cachedSlots : (savedSlots.some((s) => s) ? savedSlots : defaultSlots);
         const resolvedPhoto =
           dedicatedPhoto && dedicatedPhoto.trim() !== ''
             ? dedicatedPhoto
             : resolvedSlots[resolvedActive] ||
               (parsed.personalInfo?.profilePhotoUrl && parsed.personalInfo.profilePhotoUrl.trim() !== ''
                 ? parsed.personalInfo.profilePhotoUrl
-                : defaultState.personalInfo.profilePhotoUrl || '/profile-photo.svg');
+                : baseDefaultPhoto);
 
         return {
           ...defaultState,
@@ -203,11 +212,15 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (legacyInfo) {
       try {
         const parsedInfo = JSON.parse(legacyInfo);
+        const legacyPhoto = parsedInfo.profilePhotoUrl && parsedInfo.profilePhotoUrl.trim() !== ''
+          ? parsedInfo.profilePhotoUrl
+          : (dedicatedPhoto || baseDefaultPhoto);
         return {
           ...defaultState,
           personalInfo: {
             ...defaultState.personalInfo,
             ...parsedInfo,
+            profilePhotoUrl: legacyPhoto,
             profilePhotoSlots: cachedSlots,
             activePhotoSlot: resolvedActive,
           },
@@ -217,10 +230,16 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     }
 
+    // 3. Brand new device (clean cache): immediately render executive portrait asset
+    const initialPhoto = dedicatedPhoto && dedicatedPhoto.trim() !== ''
+      ? dedicatedPhoto
+      : cachedSlots[resolvedActive] || baseDefaultPhoto;
+
     return {
       ...defaultState,
       personalInfo: {
         ...defaultState.personalInfo,
+        profilePhotoUrl: initialPhoto,
         profilePhotoSlots: cachedSlots,
         activePhotoSlot: resolvedActive,
       },

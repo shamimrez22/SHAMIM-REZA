@@ -27,8 +27,8 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
   const [fallbackToSvg, setFallbackToSvg] = useState(false);
 
   const displayPhoto = fallbackToSvg
-    ? '/profile-photo.svg'
-    : personalInfo.profilePhotoUrl || '/profile-photo.svg';
+    ? '/profile-photo.jpg'
+    : personalInfo.profilePhotoUrl || '/profile-photo.jpg';
 
   const headlineWords = personalInfo.headline.split(' ');
   const nameWords = (personalInfo.name || 'Shamim Reza').toUpperCase().split(' ');
@@ -328,12 +328,7 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
 
           {/* ================= RIGHT COLUMN: VERY LARGE PROFILE PICTURE ================= */}
           <div className="lg:col-span-5 flex items-center justify-center lg:justify-end">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.85 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="relative group"
-            >
+            <div className="relative group">
               {/* Outer Decorative Ambient Rings & Glow */}
               <div
                 className={`absolute -inset-4 rounded-full opacity-60 blur-xl transition-all duration-700 group-hover:opacity-90 ${
@@ -369,8 +364,10 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
                     <img
                       src={displayPhoto}
                       alt={`${personalInfo.name} - Garments IE Executive`}
+                      loading="eager"
+                      decoding="async"
                       onError={() => {
-                        if (!fallbackToSvg && displayPhoto !== '/profile-photo.svg') {
+                        if (!fallbackToSvg && displayPhoto !== '/profile-photo.jpg') {
                           setFallbackToSvg(true);
                         } else {
                           setPhotoError(true);
@@ -486,7 +483,7 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
                   )}
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
 
         </div>

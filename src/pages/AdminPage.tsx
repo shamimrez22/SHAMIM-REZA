@@ -1752,7 +1752,7 @@ export const AdminPage: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-3 mt-2">
                       <img
-                        src={personalInfo.profilePhotoUrl || photoPreview || '/profile-photo.svg'}
+                        src={personalInfo.profilePhotoUrl || photoPreview || '/profile-photo.jpg'}
                         alt="Preview"
                         className="w-10 h-10 rounded-full object-cover border-2 border-amber-500/50 shadow-md"
                       />

@@ -220,16 +220,15 @@ export const About: React.FC<AboutProps> = ({ personalInfo }) => {
                 }`}
               >
                 <div className="flex items-center gap-3.5">
-                  {personalInfo.profilePhotoUrl && (
-                    <img
-                      src={personalInfo.profilePhotoUrl}
-                      alt={personalInfo.name}
-                      className="w-12 h-12 rounded-full object-cover object-top border-2 border-orange-500/60 shadow-md shrink-0"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  )}
+                  <img
+                    src={personalInfo.profilePhotoUrl || '/profile-photo.jpg'}
+                    alt={personalInfo.name}
+                    loading="eager"
+                    className="w-12 h-12 rounded-full object-cover object-top border-2 border-orange-500/60 shadow-md shrink-0"
+                    onError={(e) => {
+                      e.currentTarget.src = '/profile-photo.jpg';
+                    }}
+                  />
                   <div>
                     <span
                       className={`text-[11px] font-bold tracking-widest uppercase ${

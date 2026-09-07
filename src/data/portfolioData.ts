@@ -40,7 +40,15 @@ export const personalInfo: PersonalInfo = {
   phone: '+880 1700-000000',
   whatsapp: '+880 1700-000000',
   linkedin: 'linkedin.com/in/shamim-reza-ie',
-  profilePhotoUrl: '/profile-photo.svg', // High-end executive portrait asset, loads on Vercel/Cloudflare across all devices
+  profilePhotoUrl: '/profile-photo.jpg', // Instant high-resolution executive portrait asset
+  profilePhotoSlots: [
+    '/profile-photo.jpg',
+    '/profile-photo-slot-1.jpg',
+    '',
+    '/profile-photo-slot-3.jpg',
+    '/profile-photo-slot-4.jpg',
+  ],
+  activePhotoSlot: 0,
 };
 
 export const statistics: StatItem[] = [

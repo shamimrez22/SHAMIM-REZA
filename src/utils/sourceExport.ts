@@ -10,7 +10,7 @@ export function generatePortfolioDataSourceCode(state: PortfolioFullState, maste
   // Ensure profilePhotoUrl has a reliable value
   const cleanPersonalInfo = {
     ...state.personalInfo,
-    profilePhotoUrl: state.personalInfo.profilePhotoUrl || '/profile-photo.svg',
+    profilePhotoUrl: state.personalInfo.profilePhotoUrl || '/profile-photo.jpg',
   };
 
   return `import {

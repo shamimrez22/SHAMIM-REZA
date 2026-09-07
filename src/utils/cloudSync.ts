@@ -49,7 +49,7 @@ export async function fetchGlobalProfileData(): Promise<GlobalProfileData | null
         : 0;
 
       // If active slot has image but profilePhotoUrl is empty, sync it
-      const resolvedPhotoUrl = profilePhotoUrl || photoSlots[activePhotoSlot] || '';
+      const resolvedPhotoUrl = profilePhotoUrl || photoSlots[activePhotoSlot] || '/profile-photo.jpg';
 
       // Cache locally
       try {
@@ -70,7 +70,7 @@ export async function fetchGlobalProfileData(): Promise<GlobalProfileData | null
   } catch (err) {
     console.warn('Firebase fetch profile data fallback to local cache:', err);
     try {
-      const cachedPhoto = localStorage.getItem('portfolio_profile_photo') || '';
+      const cachedPhoto = localStorage.getItem('portfolio_profile_photo') || '/profile-photo.jpg';
       const cachedSlots = JSON.parse(localStorage.getItem('portfolio_photo_slots') || '[]');
       const cachedActive = parseInt(localStorage.getItem('portfolio_active_photo_slot') || '0', 10);
       return {
