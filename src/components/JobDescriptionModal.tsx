@@ -48,9 +48,25 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.setAttribute('data-modal-open', 'true');
+      document.body.classList.add('modal-open-for-print');
+    } else {
+      document.body.removeAttribute('data-modal-open');
+      document.body.classList.remove('modal-open-for-print');
+    }
+    return () => {
+      document.body.removeAttribute('data-modal-open');
+      document.body.classList.remove('modal-open-for-print');
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handlePrint = () => {
+    document.body.setAttribute('data-modal-open', 'true');
+    document.body.classList.add('modal-open-for-print');
     window.print();
   };
 
@@ -98,7 +114,7 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto print:p-0 print:static">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto print:p-0 print:static print:block print:w-full print:bg-white print:overflow-visible modal-print-wrapper">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -114,7 +130,7 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.28, ease: 'easeOut' }}
-          className={`relative w-full max-w-5xl rounded-2xl shadow-2xl border overflow-hidden z-10 my-auto print:border-none print:shadow-none print:w-full print:max-w-none ${
+          className={`relative w-full max-w-5xl rounded-2xl shadow-2xl border overflow-hidden z-10 my-auto print:border-none print:shadow-none print:w-full print:max-w-none print:m-0 print:p-0 print:bg-white print:text-slate-900 modal-print-container ${
             theme === 'orange'
               ? 'bg-[#150e09] border-orange-800/60 text-amber-50'
               : theme === 'dark'
@@ -262,7 +278,7 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
           </div>
 
           {/* Modal Body */}
-          <div className="p-4 sm:p-6 max-h-[82vh] overflow-y-auto space-y-5 print:max-h-none print:overflow-visible print:p-0">
+          <div className="p-4 sm:p-6 max-h-[82vh] overflow-y-auto space-y-5 print:max-h-none print:overflow-visible print:p-0 print:m-0 print:bg-white">
             
             {/* 1. Custom Uploaded Job Description File Download Card (If available) */}
             {personalInfo.jdUrl && (
@@ -369,7 +385,7 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
             {activeView === 'executive-report' && (
               <div
                 id="printable-jd-area"
-                className="printable-document bg-white text-slate-900 rounded-2xl p-6 sm:p-10 shadow-2xl border border-slate-200 font-sans print:p-0 print:border-none print:shadow-none print:rounded-none relative overflow-hidden"
+                className="printable-document bg-white text-slate-900 rounded-2xl p-6 sm:p-10 shadow-2xl border border-slate-200 font-sans print:p-0 print:m-0 print:border-none print:shadow-none print:rounded-none print:bg-white print:text-slate-900 relative overflow-hidden"
               >
                 {/* Official Letterhead Banner */}
                 <div className="border-b-2 border-slate-900 pb-5 mb-6">
@@ -576,12 +592,12 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
             {activeView === 'excel-sheet' && (
               <div
                 id="printable-jd-spreadsheet"
-                className="bg-white text-slate-900 rounded-xl p-4 sm:p-8 shadow-2xl border border-slate-300 font-sans print:p-0 print:border-none print:shadow-none print:rounded-none relative overflow-hidden"
+                className="printable-document bg-white text-slate-900 rounded-xl p-4 sm:p-8 shadow-2xl border border-slate-300 font-sans print:p-0 print:m-0 print:border-none print:shadow-none print:rounded-none print:bg-white print:text-slate-900 relative overflow-hidden"
               >
                 {/* Watermark "Page 1" matching the user's Excel sheet */}
                 <div
                   aria-hidden="true"
-                  className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0"
+                  className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 print:hidden"
                 >
                   <span className="text-8xl sm:text-9xl font-black text-slate-900/[0.04] dark:text-slate-900/[0.04] tracking-widest uppercase">
                     Page 1
@@ -762,7 +778,7 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
             {activeView === 'standard-sop' && (
               <div
                 id="printable-jd-area"
-                className="bg-white text-slate-900 rounded-xl p-6 sm:p-10 shadow-2xl border border-slate-200 font-sans print:p-0 print:border-none print:shadow-none print:rounded-none space-y-6"
+                className="printable-document bg-white text-slate-900 rounded-xl p-6 sm:p-10 shadow-2xl border border-slate-200 font-sans print:p-0 print:m-0 print:border-none print:shadow-none print:rounded-none print:bg-white print:text-slate-900 space-y-6"
               >
                 {/* Header Box */}
                 <div className="border-b-2 border-slate-900 pb-4">

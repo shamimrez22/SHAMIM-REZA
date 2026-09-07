@@ -36,13 +36,15 @@ function MainApp() {
     closeJDModal,
   } = usePortfolio();
 
+  const isAnyModalOpen = isCVModalOpen || isJDModalOpen;
+
   return (
-    <div className="min-h-screen flex flex-col font-sans transition-colors duration-500 overflow-x-hidden selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen flex flex-col font-sans transition-colors duration-500 overflow-x-hidden selection:bg-blue-600 selection:text-white print:min-h-0 print:h-auto print:bg-white">
       {/* Sticky Navigation Bar with Multi-Page Links, Theme Toggle & ADMIN PANEL inside Logo */}
       <Navbar personalInfo={personalInfo} />
 
       {/* Multi-Page Routes: Each page has its own dedicated content */}
-      <main className="flex-grow">
+      <main className={`flex-grow ${isAnyModalOpen ? 'print:hidden' : ''}`}>
         <Routes>
           {/* Home Page: Hero, Stats, Featured previews & Navigation Hub */}
           <Route

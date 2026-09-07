@@ -19,10 +19,11 @@ import {
   BarChart3,
   ShieldCheck,
   Flame,
+  FileDown,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { usePortfolio } from '../context/PortfolioContext';
-import { downloadCVAsWordDoc } from '../utils/documentExport';
+import { downloadCVAsWordDoc, downloadElementAsDirectPDF } from '../utils/documentExport';
 
 interface CVDownloadModalProps {
   isOpen: boolean;
@@ -49,11 +50,36 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
   const [activeTemplate, setActiveTemplate] = useState<'modern' | 'corporate' | 'technical'>(
     personalInfo.cvTemplatePreference || defaultTemplate
   );
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.setAttribute('data-modal-open', 'true');
+      document.body.classList.add('modal-open-for-print');
+    } else {
+      document.body.removeAttribute('data-modal-open');
+      document.body.classList.remove('modal-open-for-print');
+    }
+    return () => {
+      document.body.removeAttribute('data-modal-open');
+      document.body.classList.remove('modal-open-for-print');
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handlePrint = () => {
+    document.body.setAttribute('data-modal-open', 'true');
+    document.body.classList.add('modal-open-for-print');
     window.print();
+  };
+
+  const handleDownloadDirectPDF = async () => {
+    await downloadElementAsDirectPDF(
+      'printable-cv-area',
+      `${(personalInfo?.name || 'Shamim_Reza').replace(/\s+/g, '_')}_Curriculum_Vitae_${activeTemplate}.pdf`,
+      setIsGeneratingPdf
+    );
   };
 
   const handleDownloadDoc = () => {
@@ -69,7 +95,7 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto print:p-0 print:static">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto print:p-0 print:static print:block print:w-full print:bg-white print:overflow-visible modal-print-wrapper">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -85,7 +111,7 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.28, ease: 'easeOut' }}
-          className={`relative w-full max-w-5xl rounded-2xl shadow-2xl border overflow-hidden z-10 my-auto print:border-none print:shadow-none print:w-full print:max-w-none ${
+          className={`relative w-full max-w-5xl rounded-2xl shadow-2xl border overflow-hidden z-10 my-auto print:border-none print:shadow-none print:w-full print:max-w-none print:m-0 print:p-0 print:bg-white print:text-slate-900 modal-print-container ${
             theme === 'orange'
               ? 'bg-[#150e09] border-orange-800/60 text-amber-50'
               : theme === 'dark'
@@ -139,6 +165,26 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                onClick={handleDownloadDirectPDF}
+                disabled={isGeneratingPdf}
+                title="Download high-resolution direct PDF"
+                className="px-3 py-1.5 rounded-xl text-xs font-black text-white flex items-center gap-1.5 transition-all shadow-md bg-rose-600 hover:bg-rose-500 active:scale-95 disabled:opacity-60"
+              >
+                {isGeneratingPdf ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span className="hidden sm:inline">Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileDown className="w-3.5 h-3.5" />
+                    <span>Download PDF</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
                 onClick={handlePrint}
                 title="Print or Save as PDF"
                 className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${
@@ -185,7 +231,7 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
           </div>
 
           {/* Modal Body */}
-          <div className="p-4 sm:p-6 max-h-[82vh] overflow-y-auto space-y-5 print:max-h-none print:overflow-visible print:p-0">
+          <div className="p-4 sm:p-6 max-h-[82vh] overflow-y-auto space-y-5 print:max-h-none print:overflow-visible print:p-0 print:m-0 print:bg-white">
             
             {/* 1. Custom Uploaded CV File Download Card (If available) */}
             {personalInfo.cvUrl && (
@@ -286,7 +332,7 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
             {/* 3. Live Printable CV Document Container */}
             <div
               id="printable-cv-area"
-              className="bg-white text-slate-900 rounded-xl p-6 sm:p-10 shadow-2xl border border-slate-200 font-sans print:p-0 print:border-none print:shadow-none print:rounded-none"
+              className="printable-document bg-white text-slate-900 rounded-xl p-6 sm:p-10 shadow-2xl border border-slate-200 font-sans print:p-0 print:m-0 print:border-none print:shadow-none print:rounded-none print:bg-white print:text-slate-900"
             >
               {/* ========================================================= */}
               {/* TEMPLATE 1: MODERN GARMENTS EXECUTIVE */}

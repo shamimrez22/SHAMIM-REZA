@@ -148,7 +148,7 @@
   animation-play-state: paused;
 }
 
-/* Professional Print Media Styles - Exact 1:1 Website Preview Fidelity */
+/* Professional Print Media Styles - Pure White Background, Zero Black Pages */
 @media print {
   *,
   *::before,
@@ -156,6 +156,8 @@
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     color-adjust: exact !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
   }
 
   @page {
@@ -166,21 +168,101 @@
   html,
   body {
     background: #ffffff !important;
+    background-color: #ffffff !important;
     color: #0f172a !important;
     overflow: visible !important;
-    font-size: 11pt !important;
+    font-size: 10pt !important;
     line-height: 1.35 !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
+  #root,
+  #root > div {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    min-height: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Completely hide website navigation, header, footer, buttons, tickers, overlays */
   nav,
+  header,
   footer,
+  aside,
   button,
   .print-hidden,
-  .no-print {
+  .no-print,
+  .print\:hidden {
     display: none !important;
   }
 
-  .printable-document {
+  /* CRITICAL: When printing CV or Job Description, hide the entire background webpage (<main>) so NO dark/empty pages can ever print */
+  body.modal-open-for-print main,
+  body[data-modal-open="true"] main,
+  body:has(#printable-cv-area) main,
+  body:has(#printable-jd-area) main,
+  body:has(#printable-jd-spreadsheet) main,
+  body:has(.printable-document) main,
+  main.print-hidden,
+  main.print\:hidden {
+    display: none !important;
+  }
+
+  /* Override dark and orange themes completely during print to prevent black backgrounds */
+  .dark,
+  .orange {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  /* Hide modal dark backdrop overlays completely */
+  [class*="backdrop-blur"],
+  [class*="bg-black/85"],
+  [class*="bg-black/"],
+  .fixed.inset-0 {
+    position: static !important;
+    background: transparent !important;
+  }
+
+  /* Modal Container in Print Mode - Make it flow naturally as a clean white page */
+  .modal-print-wrapper {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    overflow: visible !important;
+  }
+
+  .modal-print-container {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  /* The actual white CV & Job Description Document containers */
+  .printable-document,
+  #printable-cv-area,
+  #printable-jd-area,
+  #printable-jd-spreadsheet {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
@@ -189,8 +271,12 @@
     box-shadow: none !important;
     border-radius: 0 !important;
     background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    overflow: visible !important;
   }
 
+  /* Tables formatting & pagination */
   table {
     page-break-inside: auto;
     border-collapse: collapse !important;
