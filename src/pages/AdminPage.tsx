@@ -36,6 +36,7 @@ import {
   Globe,
   Copy,
   Check,
+  Images,
 } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
 import { useTheme } from '../context/ThemeContext';
@@ -57,7 +58,14 @@ import {
   generatePortfolioDataSourceCode,
 } from '../utils/sourceExport';
 import { compressImageFile, uploadToImgBB } from '../utils/imageUpload';
-import { saveGlobalProfilePhoto, fetchGlobalProfilePhoto } from '../utils/cloudSync';
+import {
+  saveGlobalProfilePhoto,
+  fetchGlobalProfilePhoto,
+  saveGlobalProfileData,
+  fetchGlobalProfileData,
+  normalizeSlots,
+  DEFAULT_PHOTO_SLOTS,
+} from '../utils/cloudSync';
 
 type AdminTab =
   | 'profile'
@@ -86,6 +94,9 @@ export const AdminPage: React.FC = () => {
     updatePersonalInfo,
     updateProfilePhoto,
     removeProfilePhoto,
+    updateProfilePhotoSlot,
+    selectProfilePhotoSlot,
+    removeProfilePhotoSlot,
     uploadCV,
     removeCV,
     downloadCV,
@@ -117,9 +128,27 @@ export const AdminPage: React.FC = () => {
   const [profileForm, setProfileForm] = useState(personalInfo);
   const [photoPreview, setPhotoPreview] = useState<string>(personalInfo.profilePhotoUrl || '');
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const slotPhotoInputRef = useRef<HTMLInputElement>(null);
   const cvInputRef = useRef<HTMLInputElement>(null);
   const jdInputRef = useRef<HTMLInputElement>(null);
   const backupInputRef = useRef<HTMLInputElement>(null);
+
+  // 5 Profile Photo Presets State
+  const [slotUploadTarget, setSlotUploadTarget] = useState<number | null>(null);
+  const [editingUrlSlot, setEditingUrlSlot] = useState<number | null>(null);
+  const [slotUrlValues, setSlotUrlValues] = useState<string[]>(() =>
+    normalizeSlots(personalInfo.profilePhotoSlots)
+  );
+
+  useEffect(() => {
+    if (personalInfo.profilePhotoUrl) {
+      setPhotoPreview(personalInfo.profilePhotoUrl);
+    }
+  }, [personalInfo.profilePhotoUrl]);
+
+  useEffect(() => {
+    setSlotUrlValues(normalizeSlots(personalInfo.profilePhotoSlots));
+  }, [personalInfo.profilePhotoSlots]);
 
   // Job Description Form state
   const [jdForm, setJdForm] = useState<JobDescriptionData>(jobDescriptionData);
@@ -322,6 +351,173 @@ export const AdminPage: React.FC = () => {
     removeProfilePhoto();
     await saveGlobalProfilePhoto('');
     showToast('Profile photo removed.');
+  };
+
+  // 5 Profile Photo Preset Configurations
+  const PHOTO_SLOTS_CONFIG = [
+    {
+      id: 0,
+      name: 'ছবি ১ (Slot 1)',
+      title: 'প্রধান এক্সিকিউটিভ / CV',
+      tag: 'Executive Main',
+    },
+    {
+      id: 1,
+      name: 'ছবি ২ (Slot 2)',
+      title: 'প্রফেশনাল স্যুট ও ব্লেজার',
+      tag: 'Professional Suit',
+    },
+    {
+      id: 2,
+      name: 'ছবি ৩ (Slot 3)',
+      title: 'ফর্মাল স্টুডিও পোর্ট্রেট',
+      tag: 'Formal Studio',
+    },
+    {
+      id: 3,
+      name: 'ছবি ৪ (Slot 4)',
+      title: 'ইন্ডাস্ট্রি ভিজিট / সাইট',
+      tag: 'Casual / Floor',
+    },
+    {
+      id: 4,
+      name: 'ছবি ৫ (Slot 5)',
+      title: 'বিকল্প পোর্ট্রেট স্টাইল',
+      tag: 'Alternative Style',
+    },
+  ];
+
+  // 5 Photo Slots Handlers
+  const handleSelectSlot = async (slotIndex: number) => {
+    selectProfilePhotoSlot(slotIndex);
+    const slots = normalizeSlots(personalInfo.profilePhotoSlots);
+    const chosen = slots[slotIndex];
+    if (chosen) {
+      setPhotoPreview(chosen);
+      setProfileForm((prev) => ({ ...prev, profilePhotoUrl: chosen, activePhotoSlot: slotIndex }));
+      showToast(`✓ ছবি ${slotIndex + 1} (${PHOTO_SLOTS_CONFIG[slotIndex].tag}) সক্রিয় প্রোফাইল ছবি হিসেবে সিলেক্ট হয়েছে!`);
+    } else {
+      showToast(`✓ স্লট ${slotIndex + 1} নির্বাচন করা হয়েছে। এবার এটিতে ছবি আপলোড বা লিংক দিন।`);
+    }
+  };
+
+  const triggerSlotUpload = (slotIndex: number) => {
+    setSlotUploadTarget(slotIndex);
+    if (slotPhotoInputRef.current) {
+      slotPhotoInputRef.current.value = '';
+      slotPhotoInputRef.current.click();
+    }
+  };
+
+  const handleSlotPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || slotUploadTarget === null) return;
+    const targetSlot = slotUploadTarget;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('⚠️ Please upload an image file (PNG, JPG, WEBP).');
+      return;
+    }
+
+    setIsProcessingPhoto(true);
+    try {
+      const compressed = await compressImageFile(file, {
+        maxWidth: 850,
+        maxHeight: 850,
+        quality: 0.85,
+      });
+
+      // Update slot immediately
+      updateProfilePhotoSlot(targetSlot, compressed.dataUrl);
+      const currentActive = personalInfo.activePhotoSlot ?? 0;
+      if (currentActive === targetSlot) {
+        setPhotoPreview(compressed.dataUrl);
+        setProfileForm((prev) => ({ ...prev, profilePhotoUrl: compressed.dataUrl }));
+      }
+      showToast(`⚡ স্লট ${targetSlot + 1}-এ ছবি আপলোড হয়েছে (${compressed.sizeKb} KB)।`);
+
+      // Upload to ImgBB CDN in background if available
+      setIsUploadingToCloud(true);
+      const res = await uploadToImgBB(compressed.dataUrl, imgbbApiKey.trim() || undefined);
+      if (res.success && res.url) {
+        updateProfilePhotoSlot(targetSlot, res.url);
+        if (currentActive === targetSlot) {
+          setPhotoPreview(res.url);
+          setProfileForm((prev) => ({ ...prev, profilePhotoUrl: res.url }));
+        }
+        showToast(`🚀 স্লট ${targetSlot + 1} ছবি গ্লোবাল ক্লাউড সিঙ্ক সফল!`);
+      }
+    } catch (err) {
+      console.warn('Fallback to file reader for slot upload', err);
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        updateProfilePhotoSlot(targetSlot, result);
+        if ((personalInfo.activePhotoSlot ?? 0) === targetSlot) {
+          setPhotoPreview(result);
+        }
+        showToast(`✅ স্লট ${targetSlot + 1}-এ ছবি সেভ হয়েছে!`);
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsProcessingPhoto(false);
+      setIsUploadingToCloud(false);
+      setSlotUploadTarget(null);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleSaveSlotUrl = (slotIndex: number) => {
+    const url = (slotUrlValues[slotIndex] || '').trim();
+    if (!url) {
+      showToast('⚠️ অনুগ্রহ করে একটি সঠিক ইমেজ URL লিংক লিখুন।');
+      return;
+    }
+    updateProfilePhotoSlot(slotIndex, url);
+    const currentActive = personalInfo.activePhotoSlot ?? 0;
+    if (currentActive === slotIndex) {
+      setPhotoPreview(url);
+      setProfileForm((prev) => ({ ...prev, profilePhotoUrl: url }));
+    }
+    setEditingUrlSlot(null);
+    showToast(`🚀 স্লট ${slotIndex + 1}-এ সরাসরি ইমেজ লিংক সফলভাবে সেভ হয়েছে!`);
+  };
+
+  const handleRemoveSlotPhoto = (slotIndex: number) => {
+    removeProfilePhotoSlot(slotIndex);
+    const updated = [...slotUrlValues];
+    updated[slotIndex] = '';
+    setSlotUrlValues(updated);
+    const currentActive = personalInfo.activePhotoSlot ?? 0;
+    if (currentActive === slotIndex) {
+      setPhotoPreview('/profile-photo.svg');
+    }
+    showToast(`স্লট ${slotIndex + 1} এর ছবি মুছে ফেলা হয়েছে।`);
+  };
+
+  const handleSyncAllSlotsToFirebase = async () => {
+    setIsUploadingToCloud(true);
+    try {
+      const slots = normalizeSlots(personalInfo.profilePhotoSlots);
+      const activeSlot = typeof personalInfo.activePhotoSlot === 'number' ? personalInfo.activePhotoSlot : 0;
+      const activePhoto = personalInfo.profilePhotoUrl || slots[activeSlot] || '';
+
+      const success = await saveGlobalProfileData({
+        profilePhotoUrl: activePhoto,
+        photoSlots: slots,
+        activePhotoSlot: activeSlot,
+      });
+
+      if (success) {
+        showToast('🚀 সব ৫টি স্লটের ছবি এবং সক্রিয় ছবির তথ্য Firebase ক্লাউডে স্থায়ীভাবে সিঙ্ক হয়েছে!');
+      } else {
+        showToast('⚠️ ক্লাউড সিঙ্ক সম্পন্ন হয়েছে এবং ডিভাইসে সেভ করা হয়েছে।');
+      }
+    } catch {
+      showToast('⚠️ Firebase সিঙ্ক সম্পন্ন হয়নি।');
+    } finally {
+      setIsUploadingToCloud(false);
+    }
   };
 
   // Handle CV Upload
@@ -651,17 +847,22 @@ export const AdminPage: React.FC = () => {
           {activeTab === 'profile' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               {/* Photo Management Column */}
-              <div className="lg:col-span-4">
-                <div className={`p-6 rounded-2xl border ${cardBgClass} sticky top-28`}>
-                  <h3 className="text-base font-extrabold mb-4 flex items-center gap-2">
-                    <Camera className="w-4 h-4 text-blue-500" />
-                    <span>Profile Photo (প্রোফাইল ছবি)</span>
-                  </h3>
+              <div className="lg:col-span-5">
+                <div className={`p-5 sm:p-6 rounded-2xl border ${cardBgClass} sticky top-28`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-base font-extrabold flex items-center gap-2">
+                      <Camera className="w-4 h-4 text-blue-500" />
+                      <span>Profile Photo (প্রোফাইল ছবি)</span>
+                    </h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                      {`Slot ${(personalInfo.activePhotoSlot ?? 0) + 1} সক্রিয়`}
+                    </span>
+                  </div>
 
                   {/* Photo Preview Container */}
                   <div className="flex flex-col items-center text-center">
                     <div
-                      className={`w-44 h-44 rounded-full overflow-hidden border-4 shadow-xl mb-3 relative flex items-center justify-center ${
+                      className={`w-36 h-36 sm:w-40 sm:h-40 rounded-full overflow-hidden border-4 shadow-xl mb-3 relative flex items-center justify-center ${
                         theme === 'orange'
                           ? 'border-orange-600 bg-orange-950/40'
                           : 'border-blue-500 bg-slate-800'
@@ -675,7 +876,7 @@ export const AdminPage: React.FC = () => {
                         />
                       ) : (
                         <div className="flex flex-col items-center justify-center p-4">
-                          <User className="w-16 h-16 text-slate-400 mb-1" />
+                          <User className="w-14 h-14 text-slate-400 mb-1" />
                           <span className="text-xs font-bold text-slate-400">No Image Uploaded</span>
                         </div>
                       )}
@@ -685,24 +886,24 @@ export const AdminPage: React.FC = () => {
                         <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs flex flex-col items-center justify-center text-white p-2">
                           <RefreshCw className="w-6 h-6 animate-spin text-emerald-400 mb-1" />
                           <span className="text-[10px] font-bold">
-                            {isProcessingPhoto ? 'Compressing...' : 'Uploading Cloud...'}
+                            {isProcessingPhoto ? 'Processing...' : 'Uploading Cloud...'}
                           </span>
                         </div>
                       )}
                     </div>
 
                     {/* Image Status Pill */}
-                    <div className="mb-4">
+                    <div className="mb-3">
                       <span
                         className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
                           photoPreview && photoPreview !== '/profile-photo.svg'
-                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                            ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
                             : 'bg-slate-800 text-slate-400 border-slate-700'
                         }`}
                       >
                         {photoPreview && photoPreview !== '/profile-photo.svg'
-                          ? '🔥 Firebase Cloud Synced'
-                          : 'Standard Default Photo'}
+                          ? `✓ লাইভ ছবি: স্লট ${(personalInfo.activePhotoSlot ?? 0) + 1} (${PHOTO_SLOTS_CONFIG[personalInfo.activePhotoSlot ?? 0]?.tag || 'Active'})`
+                          : 'ডিফল্ট সিস্টেম ছবি'}
                       </span>
                     </div>
 
@@ -714,49 +915,248 @@ export const AdminPage: React.FC = () => {
                       accept="image/*"
                       className="hidden"
                     />
+                    <input
+                      type="file"
+                      ref={slotPhotoInputRef}
+                      onChange={handleSlotPhotoUpload}
+                      accept="image/*"
+                      className="hidden"
+                    />
 
-                    {/* Primary Actions */}
-                    <div className="flex flex-col gap-2.5 w-full">
+                    {/* Quick Active Photo Actions */}
+                    <div className="flex flex-col gap-2 w-full">
                       <button
                         type="button"
                         disabled={isProcessingPhoto}
-                        onClick={() => photoInputRef.current?.click()}
-                        className={`w-full py-2.5 px-4 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 ${primaryBtnClass}`}
+                        onClick={() => triggerSlotUpload(personalInfo.activePhotoSlot ?? 0)}
+                        className={`w-full py-2 px-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 ${primaryBtnClass}`}
                       >
                         <Camera className="w-4 h-4" />
                         <span>
-                          {isProcessingPhoto ? 'Processing...' : 'Upload / Take Photo (ক্যামেরা/ফাইল)'}
+                          {isProcessingPhoto ? 'Processing...' : 'বর্তমান স্লটে ছবি আপলোড (ক্যামেরা/ফাইল)'}
                         </span>
                       </button>
-
-                      {/* Make Global Live Button */}
-                      {photoPreview && (
-                        <button
-                          type="button"
-                          disabled={isUploadingToCloud}
-                          onClick={handleCloudUpload}
-                          className="w-full py-2.5 px-3 text-xs font-bold rounded-xl border border-amber-500/50 bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 transition-all flex items-center justify-center gap-2 shadow-sm shadow-amber-950/50"
-                          title="Save permanently to Firebase Cloud so every device and browser in the world sees it"
-                        >
-                          <Globe className="w-4 h-4 text-amber-400" />
-                          <span>
-                            {isUploadingToCloud ? 'Syncing to Firebase...' : '🔥 Sync to Firebase (সব ডিভাইসে স্থায়ী করুন)'}
-                          </span>
-                        </button>
-                      )}
 
                       {photoPreview && (
                         <button
                           type="button"
                           onClick={handlePhotoRemove}
-                          className="w-full py-2 px-4 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors border border-rose-500/20"
+                          className="w-full py-1.5 px-3 text-[11px] font-semibold text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors border border-rose-500/20"
                         >
-                          Remove Photo
+                          Remove Current Active Photo
                         </button>
                       )}
                     </div>
 
-                    {/* Direct Image URL Input (Alternative for cross-device live link) */}
+                    {/* 5 Profile Photo Preset Slots Section */}
+                    <div className="w-full mt-6 pt-5 border-t border-slate-800/80 text-left">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Images className="w-4 h-4 text-emerald-400" />
+                          <span className="text-xs font-black uppercase tracking-wider text-slate-200">
+                            ৫টি প্রোফাইল ছবি স্লট (5 Presets)
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-mono font-bold text-slate-400">
+                          {`${normalizeSlots(personalInfo.profilePhotoSlots).filter(Boolean).length}/5 সেট করা`}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mb-3 leading-relaxed">
+                        নিচে ৫টি স্লটে আলাদা ছবি সেট করে রাখুন। যেকোনো সময় যে ছবির{' '}
+                        <strong className="text-emerald-400">টিকমার্ক (Checkmark)</strong> বাটনে ক্লিক করবেন, পুরো ওয়েবসাইটে সাথে সাথে সেই ছবি লাইভ হবে।
+                      </p>
+
+                      {/* Slot Cards List */}
+                      <div className="space-y-2.5">
+                        {PHOTO_SLOTS_CONFIG.map((cfg, idx) => {
+                          const currentSlots = normalizeSlots(personalInfo.profilePhotoSlots);
+                          const slotPhoto = currentSlots[idx] || '';
+                          const currentActive = personalInfo.activePhotoSlot ?? 0;
+                          const isActive = currentActive === idx;
+                          const isEditingThisUrl = editingUrlSlot === idx;
+
+                          return (
+                            <div
+                              key={cfg.id}
+                              className={`p-2.5 rounded-xl border transition-all ${
+                                isActive
+                                  ? 'bg-emerald-950/30 border-emerald-500/60 ring-1 ring-emerald-500/30 shadow-xs'
+                                  : 'bg-slate-900/60 border-slate-800/80 hover:border-slate-700'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2 mb-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span
+                                    className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md ${
+                                      isActive
+                                        ? 'bg-emerald-500 text-white shadow-xs'
+                                        : 'bg-slate-800 text-slate-400 border border-slate-700'
+                                    }`}
+                                  >
+                                    {`স্লট ${idx + 1}`}
+                                  </span>
+                                  <div className="truncate">
+                                    <div className="text-xs font-bold text-slate-200 truncate leading-tight">
+                                      {cfg.title}
+                                    </div>
+                                    <div className="text-[9px] text-slate-500 font-mono">
+                                      {cfg.tag}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Prominent Tickmark Selection Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleSelectSlot(idx)}
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+                                    isActive
+                                      ? 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-xs shadow-emerald-500/40 cursor-default'
+                                      : 'bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-300 border border-slate-700 hover:border-emerald-500/40'
+                                  }`}
+                                  title={isActive ? 'এই ছবিটি বর্তমানে পোর্টফোলিওতে সক্রিয় রয়েছে' : 'এই ছবিটি মূল প্রোফাইল ছবি হিসেবে সক্রিয় করতে টিক দিন'}
+                                >
+                                  {isActive ? (
+                                    <>
+                                      <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                                      <span>✓ সক্রিয় ছবি</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className="w-3.5 h-3.5 rounded-full border-2 border-slate-400 hover:border-emerald-400 flex items-center justify-center" />
+                                      <span>টিক দিন</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+
+                              <div className="flex items-center gap-2.5">
+                                {/* Thumbnail */}
+                                <div
+                                  onClick={() => handleSelectSlot(idx)}
+                                  className="relative w-12 h-12 rounded-lg overflow-hidden border border-slate-700 bg-slate-950/70 shrink-0 cursor-pointer group"
+                                  title="ক্লিক করে এই ছবিটি সক্রিয় করুন"
+                                >
+                                  {slotPhoto ? (
+                                    <>
+                                      <img
+                                        src={slotPhoto}
+                                        alt={cfg.title}
+                                        className="w-full h-full object-cover object-top transition-transform group-hover:scale-105"
+                                      />
+                                      {isActive && (
+                                        <div className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+                                          <Check className="w-2.5 h-2.5" />
+                                        </div>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 hover:text-blue-400">
+                                      <Camera className="w-3.5 h-3.5 mb-0.5" />
+                                      <span className="text-[8px] font-bold">খালি</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Slot Controls */}
+                                <div className="flex-1 min-w-0 space-y-1">
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      disabled={isProcessingPhoto}
+                                      onClick={() => triggerSlotUpload(idx)}
+                                      className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 transition-all flex items-center gap-1"
+                                      title="ক্যামেরা অথবা ফাইল থেকে ছবি আপলোড করুন"
+                                    >
+                                      <Camera className="w-3 h-3" />
+                                      <span>{slotPhoto ? 'পরিবর্তন' : 'আপলোড'}</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingUrlSlot(isEditingThisUrl ? null : idx)}
+                                      className="px-2 py-0.5 text-[10px] font-semibold rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all flex items-center gap-1"
+                                      title="ইমেজ URL লিংক পেস্ট করুন"
+                                    >
+                                      <Globe className="w-3 h-3 text-slate-400" />
+                                      <span>লিংক</span>
+                                    </button>
+
+                                    {slotPhoto && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveSlotPhoto(idx)}
+                                        className="px-1.5 py-0.5 text-[10px] font-semibold rounded-md text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 transition-all"
+                                        title="এই স্লটের ছবি মুছুন"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  <div className="text-[9px] text-slate-500 truncate">
+                                    {slotPhoto ? (
+                                      <span className="text-emerald-400/90 font-mono">
+                                        {slotPhoto.startsWith('data:') ? '✓ সংরক্ষিত ছবি' : slotPhoto}
+                                      </span>
+                                    ) : (
+                                      <span>কোনো ছবি যুক্ত করা হয়নি</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Inline URL Input Drawer */}
+                              {isEditingThisUrl && (
+                                <div className="mt-2 pt-2 border-t border-slate-800/80 flex gap-1.5 items-center">
+                                  <input
+                                    type="url"
+                                    placeholder="https://... ইমেজ লিংক দিন"
+                                    value={slotUrlValues[idx] || ''}
+                                    onChange={(e) => {
+                                      const next = [...slotUrlValues];
+                                      next[idx] = e.target.value;
+                                      setSlotUrlValues(next);
+                                    }}
+                                    className={`flex-1 px-2 py-1 text-[10px] font-mono rounded-md border outline-none ${inputClass}`}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSaveSlotUrl(idx)}
+                                    className="px-2 py-1 text-[10px] font-bold rounded-md bg-emerald-600 hover:bg-emerald-500 text-white whitespace-nowrap"
+                                  >
+                                    সেভ
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingUrlSlot(null)}
+                                    className="px-1.5 py-1 text-[10px] rounded-md bg-slate-800 text-slate-400 hover:text-white"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Sync All 5 Slots to Firebase Cloud */}
+                      <button
+                        type="button"
+                        disabled={isUploadingToCloud}
+                        onClick={handleSyncAllSlotsToFirebase}
+                        className="mt-3.5 w-full py-2 px-3 text-xs font-bold rounded-xl border border-emerald-500/40 bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 transition-all flex items-center justify-center gap-2 shadow-xs shadow-emerald-950/50"
+                        title="Firebase ক্লাউডে সব ৫টি স্লট এবং সক্রিয় ছবি পারমানেন্টলি সেভ করুন"
+                      >
+                        <Globe className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>
+                          {isUploadingToCloud ? 'সিঙ্ক হচ্ছে...' : '🔥 Sync All Slots to Firebase (ক্লাউডে সেভ)'}
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* Direct Image URL Input (Alternative for active photo) */}
                     <div className="w-full mt-4 pt-4 border-t border-slate-800/60 text-left">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1.5">
                         <Globe className="w-3 h-3 text-blue-400" />
@@ -779,7 +1179,7 @@ export const AdminPage: React.FC = () => {
                         </button>
                       </div>
                       <p className="text-[10px] text-slate-500 mt-1">
-                        Google Drive direct, Imgur, ImgBB, বা Cloudinary লিংক দিতে পারেন।
+                        ImgBB, Imgur, বা Cloudinary লিংক সরাসরি দিতে পারেন।
                       </p>
                     </div>
 
@@ -789,7 +1189,7 @@ export const AdminPage: React.FC = () => {
                         <span>যেকোনো ডিভাইস থেকে লাইভ আপডেট:</span>
                       </div>
                       <p>
-                        মোবাইলের ক্যামেরা দিয়ে ছবি তুললেও তা স্বয়ংক্রিয়ভাবে ক্রপ ও হাই-স্পিড রেজ্যুলেশনে অপ্টিমাইজ হয়ে যায়। হোমপেজ, নেভবার ও সিভি-তে সাথে সাথে প্রদর্শিত হবে।
+                        মোবাইলের ক্যামেরা দিয়ে ছবি তুললেও তা স্বয়ংক্রিয়ভাবে ক্রপ ও অপ্টিমাইজ হয়ে যায়। হোমপেজ, নেভবার ও সিভি-তে সাথে সাথে প্রদর্শিত হবে।
                       </p>
                     </div>
                   </div>
@@ -797,7 +1197,7 @@ export const AdminPage: React.FC = () => {
               </div>
 
               {/* Personal Information Form */}
-              <div className="lg:col-span-8">
+              <div className="lg:col-span-7">
                 <form onSubmit={handleSaveProfile} className={`p-6 sm:p-8 rounded-2xl border ${cardBgClass}`}>
                   <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-800/40">
                     <div>

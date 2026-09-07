@@ -1,6 +1,6 @@
 /**
  * Global Real-Time Cloud Synchronization Powered by Firebase Firestore
- * Ensures executive profile photo & portfolio changes persist permanently
+ * Ensures executive profile photo presets & portfolio changes persist permanently
  * and synchronize across all devices, browsers, and mobile phones in real-time.
  */
 
@@ -9,36 +9,75 @@ import { db } from '../lib/firebase';
 
 const PORTFOLIO_DOC_ID = 'main';
 
+export interface GlobalProfileData {
+  profilePhotoUrl: string;
+  photoSlots: string[];
+  activePhotoSlot: number;
+}
+
+export const DEFAULT_PHOTO_SLOTS = ['', '', '', '', ''];
+
 /**
- * Fetches the globally synchronized profile photo URL from Firebase Firestore.
- * Works from any browser, device, or incognito mode.
+ * Normalizes slots array to guarantee exactly 5 items
  */
-export async function fetchGlobalProfilePhoto(): Promise<string | null> {
+export function normalizeSlots(slots?: any[]): string[] {
+  const result = [...DEFAULT_PHOTO_SLOTS];
+  if (Array.isArray(slots)) {
+    for (let i = 0; i < 5; i++) {
+      if (typeof slots[i] === 'string') {
+        result[i] = slots[i];
+      }
+    }
+  }
+  return result;
+}
+
+/**
+ * Fetches the globally synchronized profile data & 5 photo slots from Firebase Firestore.
+ */
+export async function fetchGlobalProfileData(): Promise<GlobalProfileData | null> {
   try {
     const docRef = doc(db, 'portfolio', PORTFOLIO_DOC_ID);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
       const data = docSnap.data();
-      if (data?.profilePhotoUrl && typeof data.profilePhotoUrl === 'string') {
-        const url = data.profilePhotoUrl.trim();
-        if (url.length > 0) {
-          // Cache locally for instant offline loading
-          try {
-            localStorage.setItem('portfolio_profile_photo', url);
-          } catch {
-            // ignore localStorage quota errors
-          }
-          return url;
-        }
+      const profilePhotoUrl = typeof data?.profilePhotoUrl === 'string' ? data.profilePhotoUrl.trim() : '';
+      const photoSlots = normalizeSlots(data?.photoSlots);
+      const activePhotoSlot = typeof data?.activePhotoSlot === 'number' && data.activePhotoSlot >= 0 && data.activePhotoSlot < 5
+        ? data.activePhotoSlot
+        : 0;
+
+      // If active slot has image but profilePhotoUrl is empty, sync it
+      const resolvedPhotoUrl = profilePhotoUrl || photoSlots[activePhotoSlot] || '';
+
+      // Cache locally
+      try {
+        if (resolvedPhotoUrl) localStorage.setItem('portfolio_profile_photo', resolvedPhotoUrl);
+        localStorage.setItem('portfolio_photo_slots', JSON.stringify(photoSlots));
+        localStorage.setItem('portfolio_active_photo_slot', String(activePhotoSlot));
+      } catch {
+        // ignore storage error
       }
+
+      return {
+        profilePhotoUrl: resolvedPhotoUrl,
+        photoSlots,
+        activePhotoSlot,
+      };
     }
     return null;
   } catch (err) {
-    console.warn('Firebase fetch profile photo fallback to local cache:', err);
-    // Fallback to local storage if offline
+    console.warn('Firebase fetch profile data fallback to local cache:', err);
     try {
-      return localStorage.getItem('portfolio_profile_photo');
+      const cachedPhoto = localStorage.getItem('portfolio_profile_photo') || '';
+      const cachedSlots = JSON.parse(localStorage.getItem('portfolio_photo_slots') || '[]');
+      const cachedActive = parseInt(localStorage.getItem('portfolio_active_photo_slot') || '0', 10);
+      return {
+        profilePhotoUrl: cachedPhoto,
+        photoSlots: normalizeSlots(cachedSlots),
+        activePhotoSlot: isNaN(cachedActive) ? 0 : cachedActive,
+      };
     } catch {
       return null;
     }
@@ -46,17 +85,33 @@ export async function fetchGlobalProfilePhoto(): Promise<string | null> {
 }
 
 /**
- * Saves the profile photo URL permanently into Firebase Firestore.
- * Instantly broadcasts the new photo to all browsers and devices worldwide.
+ * Legacy compatibility wrapper for fetching single active photo URL
  */
-export async function saveGlobalProfilePhoto(photoUrl: string): Promise<boolean> {
-  const cleanUrl = photoUrl.trim();
+export async function fetchGlobalProfilePhoto(): Promise<string | null> {
+  const data = await fetchGlobalProfileData();
+  return data?.profilePhotoUrl || null;
+}
+
+/**
+ * Saves all 5 profile photo slots and active slot selection permanently to Firebase.
+ */
+export async function saveGlobalProfileData(payload: {
+  profilePhotoUrl: string;
+  photoSlots?: string[];
+  activePhotoSlot?: number;
+}): Promise<boolean> {
+  const cleanUrl = payload.profilePhotoUrl.trim();
+  const slots = normalizeSlots(payload.photoSlots);
+  const activeSlot = typeof payload.activePhotoSlot === 'number' ? payload.activePhotoSlot : 0;
+
   try {
     const docRef = doc(db, 'portfolio', PORTFOLIO_DOC_ID);
     await setDoc(
       docRef,
       {
         profilePhotoUrl: cleanUrl,
+        photoSlots: slots,
+        activePhotoSlot: activeSlot,
         updatedAt: new Date().toISOString(),
       },
       { merge: true }
@@ -65,16 +120,19 @@ export async function saveGlobalProfilePhoto(photoUrl: string): Promise<boolean>
     // Save locally
     try {
       localStorage.setItem('portfolio_profile_photo', cleanUrl);
+      localStorage.setItem('portfolio_photo_slots', JSON.stringify(slots));
+      localStorage.setItem('portfolio_active_photo_slot', String(activeSlot));
     } catch {
       // ignore
     }
 
     return true;
   } catch (err) {
-    console.error('Failed to sync photo to Firebase Firestore:', err);
-    // Even if remote write fails temporarily, save locally
+    console.error('Failed to sync photo slots to Firebase Firestore:', err);
     try {
       localStorage.setItem('portfolio_profile_photo', cleanUrl);
+      localStorage.setItem('portfolio_photo_slots', JSON.stringify(slots));
+      localStorage.setItem('portfolio_active_photo_slot', String(activeSlot));
     } catch {
       // ignore
     }
@@ -83,11 +141,25 @@ export async function saveGlobalProfilePhoto(photoUrl: string): Promise<boolean>
 }
 
 /**
- * Subscribes in real-time to profile photo changes from Firebase Firestore.
- * When an admin changes the photo on mobile or PC, all other open clients update immediately.
+ * Saves the profile photo URL permanently into Firebase Firestore.
  */
-export function subscribeToGlobalProfilePhoto(
-  callback: (photoUrl: string) => void
+export async function saveGlobalProfilePhoto(
+  photoUrl: string,
+  photoSlots?: string[],
+  activePhotoSlot?: number
+): Promise<boolean> {
+  return saveGlobalProfileData({
+    profilePhotoUrl: photoUrl,
+    photoSlots,
+    activePhotoSlot,
+  });
+}
+
+/**
+ * Subscribes in real-time to profile photo & 5 slots changes from Firebase Firestore.
+ */
+export function subscribeToGlobalProfileData(
+  callback: (data: GlobalProfileData) => void
 ): () => void {
   try {
     const docRef = doc(db, 'portfolio', PORTFOLIO_DOC_ID);
@@ -96,12 +168,17 @@ export function subscribeToGlobalProfilePhoto(
       (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
-          if (data?.profilePhotoUrl && typeof data.profilePhotoUrl === 'string') {
-            const url = data.profilePhotoUrl.trim();
-            if (url) {
-              callback(url);
-            }
-          }
+          const profilePhotoUrl = typeof data?.profilePhotoUrl === 'string' ? data.profilePhotoUrl.trim() : '';
+          const photoSlots = normalizeSlots(data?.photoSlots);
+          const activePhotoSlot = typeof data?.activePhotoSlot === 'number' && data.activePhotoSlot >= 0 && data.activePhotoSlot < 5
+            ? data.activePhotoSlot
+            : 0;
+
+          callback({
+            profilePhotoUrl: profilePhotoUrl || photoSlots[activePhotoSlot] || '',
+            photoSlots,
+            activePhotoSlot,
+          });
         }
       },
       (err) => {
@@ -114,3 +191,17 @@ export function subscribeToGlobalProfilePhoto(
     return () => {};
   }
 }
+
+/**
+ * Subscribes in real-time to profile photo changes from Firebase Firestore.
+ */
+export function subscribeToGlobalProfilePhoto(
+  callback: (photoUrl: string) => void
+): () => void {
+  return subscribeToGlobalProfileData((data) => {
+    if (data.profilePhotoUrl) {
+      callback(data.profilePhotoUrl);
+    }
+  });
+}
+

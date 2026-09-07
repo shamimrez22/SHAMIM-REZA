@@ -36,10 +36,10 @@ export const SampleWork: React.FC = () => {
         {/* Section Header with Scroll Reveal */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -15 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-50px' }}
-            transition={{ duration: 0.4 }}
+            viewport={{ once: false, amount: 0.2 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-3 border ${
               theme === 'orange'
                 ? 'text-orange-400 bg-orange-500/10 border-orange-500/20'
@@ -50,10 +50,10 @@ export const SampleWork: React.FC = () => {
           </motion.div>
 
           <motion.h2
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-50px' }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            viewport={{ once: false, amount: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
             className={`text-3xl sm:text-5xl font-black tracking-tight ${
               theme === 'dark' || theme === 'orange' ? 'text-white' : 'text-slate-950'
             }`}
@@ -64,8 +64,8 @@ export const SampleWork: React.FC = () => {
           <motion.div
             initial={{ scaleX: 0 }}
             whileInView={{ scaleX: 1 }}
-            viewport={{ once: true, margin: '-50px' }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            viewport={{ once: false, amount: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className={`w-20 h-1 mx-auto mt-4 rounded-full ${
               theme === 'orange'
                 ? 'bg-gradient-to-r from-orange-500 to-amber-400'
@@ -74,10 +74,10 @@ export const SampleWork: React.FC = () => {
           />
 
           <motion.p
-            initial={{ opacity: 0, y: 15 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-50px' }}
-            transition={{ duration: 0.5, delay: 0.25 }}
+            viewport={{ once: false, amount: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className={`text-sm sm:text-base mt-4 max-w-2xl mx-auto leading-relaxed font-medium ${
               theme === 'orange'
                 ? 'text-amber-200/80'
@@ -111,13 +111,13 @@ export const SampleWork: React.FC = () => {
           {sampleWorkProjects.map((project: SampleProject, index: number) => (
             <motion.div
               key={project.id}
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 38 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-40px' }}
+              viewport={{ once: false, amount: 0.15 }}
               transition={{
-                duration: 0.45,
-                delay: index * 0.08,
-                ease: 'easeOut',
+                duration: 0.6,
+                delay: index * 0.1,
+                ease: [0.22, 1, 0.36, 1],
               }}
               whileHover={{ y: -6, transition: { duration: 0.2 } }}
               className={`p-6 sm:p-7 rounded-2xl border transition-all duration-300 flex flex-col justify-between group relative overflow-hidden ${

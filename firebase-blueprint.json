@@ -2,12 +2,23 @@
   "entities": {
     "portfolioConfig": {
       "title": "Portfolio Configuration",
-      "description": "Configuration and executive profile photo for Shamim Reza's portfolio",
+      "description": "Configuration, 5 preset profile photos, and executive profile photo for Shamim Reza's portfolio",
       "type": "object",
       "properties": {
         "profilePhotoUrl": {
           "type": "string",
-          "description": "Profile photo URL or base64 data"
+          "description": "Currently active profile photo URL or base64 data"
+        },
+        "activePhotoSlot": {
+          "type": "number",
+          "description": "Index of the selected active photo slot (0-4)"
+        },
+        "photoSlots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Array of 5 profile photo URLs or base64 data slots"
         },
         "updatedAt": {
           "type": "string",

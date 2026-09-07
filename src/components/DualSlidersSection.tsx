@@ -243,7 +243,11 @@ export const DualSlidersSection: React.FC = () => {
     >
       <div className="max-w-7xl mx-auto px-2 sm:px-4">
         {/* Compact, low-height banner card */}
-        <div
+        <motion.div
+          initial={{ opacity: 0, y: 25 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false, amount: 0.2 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className={`relative rounded-xl border px-3 sm:px-4 py-2 sm:py-2.5 shadow-md backdrop-blur-md overflow-hidden transition-all duration-300 ${
             theme === 'orange'
               ? 'bg-[#1d120a]/95 border-orange-700/50 shadow-orange-950/40'
@@ -430,7 +434,7 @@ export const DualSlidersSection: React.FC = () => {
               }`}
             />
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

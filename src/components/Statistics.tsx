@@ -13,10 +13,13 @@ const AnimatedCounter: React.FC<{
 }> = ({ targetValue, suffix, prefix = '', duration = 2000 }) => {
   const [currentValue, setCurrentValue] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
-  const isInView = useInView(ref, { once: true, margin: '-40px' });
+  const isInView = useInView(ref, { once: false, margin: '-30px' });
 
   useEffect(() => {
-    if (!isInView) return;
+    if (!isInView) {
+      setCurrentValue(0);
+      return;
+    }
 
     let startTime: number | null = null;
     let animationFrameId: number;
@@ -68,10 +71,10 @@ export const Statistics: React.FC = () => {
           {statistics.map((stat: StatItem, index: number) => (
             <motion.div
               key={stat.id}
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 36 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-50px' }}
-              transition={{ duration: 0.5, delay: index * 0.1, ease: 'easeOut' }}
+              viewport={{ once: false, amount: 0.15 }}
+              transition={{ duration: 0.6, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
               className={`p-6 sm:p-8 rounded-2xl border transition-all duration-300 hover:-translate-y-1 ${
                 theme === 'orange'
                   ? 'bg-[#181109]/95 border-orange-900/60 hover:border-orange-500/60 shadow-lg shadow-black/30'

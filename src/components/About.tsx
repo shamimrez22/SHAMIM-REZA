@@ -45,10 +45,10 @@ export const About: React.FC<AboutProps> = ({ personalInfo }) => {
         {/* Section Header with Scroll-Based Text Reveal */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -15 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-50px' }}
-            transition={{ duration: 0.4 }}
+            viewport={{ once: false, amount: 0.2 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-3 border ${
               theme === 'orange'
                 ? 'text-orange-400 bg-orange-500/10 border-orange-500/20'
@@ -59,10 +59,10 @@ export const About: React.FC<AboutProps> = ({ personalInfo }) => {
           </motion.div>
 
           <motion.h2
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-50px' }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            viewport={{ once: false, amount: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
             className="text-3xl sm:text-5xl font-black tracking-tight"
           >
             ABOUT ME
@@ -71,8 +71,8 @@ export const About: React.FC<AboutProps> = ({ personalInfo }) => {
           <motion.div
             initial={{ scaleX: 0 }}
             whileInView={{ scaleX: 1 }}
-            viewport={{ once: true, margin: '-50px' }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            viewport={{ once: false, amount: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className={`w-20 h-1 mx-auto mt-4 rounded-full ${
               theme === 'orange'
                 ? 'bg-gradient-to-r from-orange-500 to-amber-400'
@@ -86,10 +86,10 @@ export const About: React.FC<AboutProps> = ({ personalInfo }) => {
           
           {/* Left Column: Descriptive Narrative */}
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: '-50px' }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
+            initial={{ opacity: 0, x: -35, y: 15 }}
+            whileInView={{ opacity: 1, x: 0, y: 0 }}
+            viewport={{ once: false, amount: 0.15 }}
+            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
             className="lg:col-span-7 space-y-6"
           >
             <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
@@ -188,10 +188,10 @@ export const About: React.FC<AboutProps> = ({ personalInfo }) => {
 
           {/* Right Column: Professional Information Card */}
           <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: '-50px' }}
-            transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
+            initial={{ opacity: 0, x: 35, y: 15 }}
+            whileInView={{ opacity: 1, x: 0, y: 0 }}
+            viewport={{ once: false, amount: 0.15 }}
+            transition={{ duration: 0.65, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
             className="lg:col-span-5"
           >
             <div

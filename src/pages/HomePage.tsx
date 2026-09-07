@@ -46,7 +46,13 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 35 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: false, amount: 0.2 }}
+            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4"
+          >
             <div>
               <div
                 className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-2 border ${
@@ -82,16 +88,16 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
               <span>View All Services &amp; Methodology</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {services.slice(0, 3).map((service, index) => (
               <motion.div
                 key={service.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 45 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
+                viewport={{ once: false, amount: 0.15 }}
+                transition={{ duration: 0.65, delay: index * 0.12, ease: [0.22, 1, 0.36, 1] }}
                 className={`p-6 rounded-2xl border transition-all duration-300 flex flex-col justify-between ${
                   theme === 'orange'
                     ? 'bg-[#1c120a]/90 border-orange-900/60 hover:border-orange-500/60 shadow-lg'
@@ -160,7 +166,13 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 35 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: false, amount: 0.2 }}
+            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4"
+          >
             <div>
               <div
                 className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-2 border ${
@@ -196,16 +208,16 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
               <span>Explore All 15 Skills &amp; Tools Suite</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {skills.slice(0, 6).map((skill, index) => (
               <motion.div
                 key={skill.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 35 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.35, delay: index * 0.05 }}
+                viewport={{ once: false, amount: 0.15 }}
+                transition={{ duration: 0.5, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
                 className={`p-4 rounded-xl border text-center transition-all ${
                   theme === 'orange'
                     ? 'bg-[#181109]/90 border-orange-950 hover:border-orange-500/50'
@@ -246,7 +258,13 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 35 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: false, amount: 0.2 }}
+            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4"
+          >
             <div>
               <div
                 className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-2 border ${
@@ -282,12 +300,16 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
               <span>Inspect All Work Samples &amp; Data Sets</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {sampleWorkProjects.slice(0, 2).map((project) => (
-              <div
+            {sampleWorkProjects.slice(0, 2).map((project, index) => (
+              <motion.div
                 key={project.id}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: false, amount: 0.15 }}
+                transition={{ duration: 0.65, delay: index * 0.15, ease: [0.22, 1, 0.36, 1] }}
                 className={`p-6 rounded-2xl border transition-all ${
                   theme === 'orange'
                     ? 'bg-[#1c120a]/90 border-orange-900/60 hover:border-orange-500/40 shadow-lg'
@@ -329,7 +351,7 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
                   <span>Open Interactive Spreadsheet Viewer</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </Link>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -347,7 +369,12 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
-            <div>
+            <motion.div
+              initial={{ opacity: 0, x: -30, y: 20 }}
+              whileInView={{ opacity: 1, x: 0, y: 0 }}
+              viewport={{ once: false, amount: 0.2 }}
+              transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+            >
               <span
                 className={`text-xs font-extrabold uppercase tracking-widest block mb-1 ${
                   theme === 'orange' ? 'text-orange-400' : 'text-blue-600 dark:text-cyan-400'
@@ -369,9 +396,15 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
               >
                 Browse detailed information on dedicated pages: career history, 15 technical skills, interactive spreadsheet tables, formal credentials, and direct contact forms.
               </p>
-            </div>
+            </motion.div>
 
-            <div className="flex flex-wrap gap-3">
+            <motion.div
+              initial={{ opacity: 0, x: 30, y: 20 }}
+              whileInView={{ opacity: 1, x: 0, y: 0 }}
+              viewport={{ once: false, amount: 0.2 }}
+              transition={{ duration: 0.65, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+              className="flex flex-wrap gap-3"
+            >
               <Link
                 to="/about"
                 className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors border shadow-xs ${
@@ -442,7 +475,7 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
               >
                 Contact Me
               </Link>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>

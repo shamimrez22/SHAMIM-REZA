@@ -15,6 +15,8 @@ export interface PersonalInfo {
   whatsapp: string;
   linkedin: string;
   profilePhotoUrl: string;
+  profilePhotoSlots?: string[];
+  activePhotoSlot?: number;
   cvUrl?: string;
   cvFileName?: string;
   cvFileSize?: string;

@@ -16,9 +16,10 @@ import {
 } from '../types/portfolio';
 import { initialJobDescriptionData } from '../data/jobDescriptionData';
 import {
-  fetchGlobalProfilePhoto,
-  saveGlobalProfilePhoto,
-  subscribeToGlobalProfilePhoto,
+  fetchGlobalProfileData,
+  saveGlobalProfileData,
+  subscribeToGlobalProfileData,
+  normalizeSlots,
 } from '../utils/cloudSync';
 import {
   personalInfo as initialPersonalInfo,
@@ -71,6 +72,9 @@ interface PortfolioContextType {
   updatePersonalInfo: (info: Partial<PersonalInfo>) => void;
   updateProfilePhoto: (urlOrBase64: string) => void;
   removeProfilePhoto: () => void;
+  updateProfilePhotoSlot: (slotIndex: number, urlOrBase64: string) => void;
+  selectProfilePhotoSlot: (slotIndex: number) => void;
+  removeProfilePhotoSlot: (slotIndex: number) => void;
   uploadCV: (fileData: string, fileName: string, fileSize?: string) => void;
   removeCV: () => void;
   downloadCV: () => void;
@@ -140,18 +144,29 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [state, setState] = useState<PortfolioFullState>(() => {
     // 0. High priority dedicated profile photo cache
     const dedicatedPhoto = localStorage.getItem('portfolio_profile_photo');
+    let cachedSlots: string[] = ['', '', '', '', ''];
+    try {
+      cachedSlots = normalizeSlots(JSON.parse(localStorage.getItem('portfolio_photo_slots') || '[]'));
+    } catch {
+      // ignore
+    }
+    const cachedActive = parseInt(localStorage.getItem('portfolio_active_photo_slot') || '0', 10);
+    const resolvedActive = !isNaN(cachedActive) && cachedActive >= 0 && cachedActive < 5 ? cachedActive : 0;
 
     // 1. Try loading full state from localStorage
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        const savedSlots = normalizeSlots(parsed.personalInfo?.profilePhotoSlots);
+        const resolvedSlots = cachedSlots.some((s) => s) ? cachedSlots : savedSlots;
         const resolvedPhoto =
           dedicatedPhoto && dedicatedPhoto.trim() !== ''
             ? dedicatedPhoto
-            : parsed.personalInfo?.profilePhotoUrl && parsed.personalInfo.profilePhotoUrl.trim() !== ''
-            ? parsed.personalInfo.profilePhotoUrl
-            : defaultState.personalInfo.profilePhotoUrl || '/profile-photo.svg';
+            : resolvedSlots[resolvedActive] ||
+              (parsed.personalInfo?.profilePhotoUrl && parsed.personalInfo.profilePhotoUrl.trim() !== ''
+                ? parsed.personalInfo.profilePhotoUrl
+                : defaultState.personalInfo.profilePhotoUrl || '/profile-photo.svg');
 
         return {
           ...defaultState,
@@ -160,6 +175,8 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             ...defaultState.personalInfo,
             ...parsed.personalInfo,
             profilePhotoUrl: resolvedPhoto,
+            profilePhotoSlots: resolvedSlots,
+            activePhotoSlot: resolvedActive,
           },
           jobDescriptionData: {
             ...defaultState.jobDescriptionData,
@@ -188,14 +205,26 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const parsedInfo = JSON.parse(legacyInfo);
         return {
           ...defaultState,
-          personalInfo: { ...defaultState.personalInfo, ...parsedInfo },
+          personalInfo: {
+            ...defaultState.personalInfo,
+            ...parsedInfo,
+            profilePhotoSlots: cachedSlots,
+            activePhotoSlot: resolvedActive,
+          },
         };
       } catch (e) {
         console.error('Failed to parse legacy user info', e);
       }
     }
 
-    return defaultState;
+    return {
+      ...defaultState,
+      personalInfo: {
+        ...defaultState.personalInfo,
+        profilePhotoSlots: cachedSlots,
+        activePhotoSlot: resolvedActive,
+      },
+    };
   });
 
   // Sync to localStorage on change
@@ -216,26 +245,27 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Real-time Global Cloud Synchronization via Firebase Firestore
   // Ensures ANY browser (mobile, new devices, incognito, HR recruiters) immediately receives
-  // the live executive profile photo even if local storage is blank.
+  // the live executive profile photo and 5 photo presets even if local storage is blank.
   useEffect(() => {
     let isMounted = true;
 
     // Initial fetch from Firebase
-    fetchGlobalProfilePhoto().then((cloudPhoto) => {
-      if (!isMounted || !cloudPhoto) return;
+    fetchGlobalProfileData().then((cloudData) => {
+      if (!isMounted || !cloudData) return;
 
       setState((prev) => {
-        if (prev.personalInfo.profilePhotoUrl !== cloudPhoto) {
-          try {
-            localStorage.setItem('portfolio_profile_photo', cloudPhoto);
-          } catch {
-            // ignore
-          }
+        const photoChanged = prev.personalInfo.profilePhotoUrl !== cloudData.profilePhotoUrl;
+        const slotsChanged = JSON.stringify(prev.personalInfo.profilePhotoSlots) !== JSON.stringify(cloudData.photoSlots);
+        const activeChanged = prev.personalInfo.activePhotoSlot !== cloudData.activePhotoSlot;
+
+        if (photoChanged || slotsChanged || activeChanged) {
           return {
             ...prev,
             personalInfo: {
               ...prev.personalInfo,
-              profilePhotoUrl: cloudPhoto,
+              profilePhotoUrl: cloudData.profilePhotoUrl || prev.personalInfo.profilePhotoUrl,
+              profilePhotoSlots: cloudData.photoSlots,
+              activePhotoSlot: cloudData.activePhotoSlot,
             },
           };
         }
@@ -244,20 +274,21 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
 
     // Real-time listener: instantly catches updates from any device or admin tab
-    const unsubscribe = subscribeToGlobalProfilePhoto((livePhoto) => {
-      if (!isMounted || !livePhoto) return;
+    const unsubscribe = subscribeToGlobalProfileData((liveData) => {
+      if (!isMounted || !liveData) return;
       setState((prev) => {
-        if (prev.personalInfo.profilePhotoUrl !== livePhoto) {
-          try {
-            localStorage.setItem('portfolio_profile_photo', livePhoto);
-          } catch {
-            // ignore
-          }
+        const photoChanged = prev.personalInfo.profilePhotoUrl !== liveData.profilePhotoUrl;
+        const slotsChanged = JSON.stringify(prev.personalInfo.profilePhotoSlots) !== JSON.stringify(liveData.photoSlots);
+        const activeChanged = prev.personalInfo.activePhotoSlot !== liveData.activePhotoSlot;
+
+        if (photoChanged || slotsChanged || activeChanged) {
           return {
             ...prev,
             personalInfo: {
               ...prev.personalInfo,
-              profilePhotoUrl: livePhoto,
+              profilePhotoUrl: liveData.profilePhotoUrl || prev.personalInfo.profilePhotoUrl,
+              profilePhotoSlots: liveData.photoSlots,
+              activePhotoSlot: liveData.activePhotoSlot,
             },
           };
         }
@@ -282,21 +313,117 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const updateProfilePhoto = (urlOrBase64: string) => {
+    const cleanUrl = urlOrBase64.trim();
     try {
-      if (urlOrBase64 && urlOrBase64.trim() !== '') {
-        localStorage.setItem('portfolio_profile_photo', urlOrBase64);
+      if (cleanUrl) {
+        localStorage.setItem('portfolio_profile_photo', cleanUrl);
       } else {
         localStorage.removeItem('portfolio_profile_photo');
       }
     } catch (e) {
       console.warn('Failed to save to portfolio_profile_photo cache', e);
     }
-    updatePersonalInfo({ profilePhotoUrl: urlOrBase64 });
 
-    // Always permanently save to Firebase Firestore
-    if (urlOrBase64 && urlOrBase64.trim() !== '') {
-      saveGlobalProfilePhoto(urlOrBase64);
-    }
+    setState((prev) => {
+      const currentSlots = normalizeSlots(prev.personalInfo.profilePhotoSlots);
+      const activeIndex = typeof prev.personalInfo.activePhotoSlot === 'number' ? prev.personalInfo.activePhotoSlot : 0;
+      currentSlots[activeIndex] = cleanUrl;
+
+      saveGlobalProfileData({
+        profilePhotoUrl: cleanUrl,
+        photoSlots: currentSlots,
+        activePhotoSlot: activeIndex,
+      });
+
+      return {
+        ...prev,
+        personalInfo: {
+          ...prev.personalInfo,
+          profilePhotoUrl: cleanUrl,
+          profilePhotoSlots: currentSlots,
+        },
+      };
+    });
+  };
+
+  const updateProfilePhotoSlot = (slotIndex: number, urlOrBase64: string) => {
+    if (slotIndex < 0 || slotIndex >= 5) return;
+    const cleanVal = (urlOrBase64 || '').trim();
+
+    setState((prev) => {
+      const currentSlots = normalizeSlots(prev.personalInfo.profilePhotoSlots);
+      currentSlots[slotIndex] = cleanVal;
+
+      const activeIndex = typeof prev.personalInfo.activePhotoSlot === 'number' ? prev.personalInfo.activePhotoSlot : 0;
+      const newActivePhoto = activeIndex === slotIndex ? cleanVal || prev.personalInfo.profilePhotoUrl : prev.personalInfo.profilePhotoUrl;
+
+      saveGlobalProfileData({
+        profilePhotoUrl: newActivePhoto,
+        photoSlots: currentSlots,
+        activePhotoSlot: activeIndex,
+      });
+
+      return {
+        ...prev,
+        personalInfo: {
+          ...prev.personalInfo,
+          profilePhotoUrl: newActivePhoto,
+          profilePhotoSlots: currentSlots,
+        },
+      };
+    });
+  };
+
+  const selectProfilePhotoSlot = (slotIndex: number) => {
+    if (slotIndex < 0 || slotIndex >= 5) return;
+
+    setState((prev) => {
+      const currentSlots = normalizeSlots(prev.personalInfo.profilePhotoSlots);
+      const chosenPhoto = currentSlots[slotIndex] || '';
+      const newActivePhoto = chosenPhoto || prev.personalInfo.profilePhotoUrl;
+
+      saveGlobalProfileData({
+        profilePhotoUrl: newActivePhoto,
+        photoSlots: currentSlots,
+        activePhotoSlot: slotIndex,
+      });
+
+      return {
+        ...prev,
+        personalInfo: {
+          ...prev.personalInfo,
+          profilePhotoUrl: newActivePhoto,
+          activePhotoSlot: slotIndex,
+        },
+      };
+    });
+  };
+
+  const removeProfilePhotoSlot = (slotIndex: number) => {
+    if (slotIndex < 0 || slotIndex >= 5) return;
+
+    setState((prev) => {
+      const currentSlots = normalizeSlots(prev.personalInfo.profilePhotoSlots);
+      currentSlots[slotIndex] = '';
+
+      const activeIndex = typeof prev.personalInfo.activePhotoSlot === 'number' ? prev.personalInfo.activePhotoSlot : 0;
+      const newActivePhoto = activeIndex === slotIndex ? '/profile-photo.svg' : prev.personalInfo.profilePhotoUrl;
+
+      saveGlobalProfileData({
+        profilePhotoUrl: newActivePhoto,
+        photoSlots: currentSlots,
+        activePhotoSlot: activeIndex,
+      });
+
+      return {
+        ...prev,
+        personalInfo: {
+          ...prev.personalInfo,
+          profilePhotoUrl: newActivePhoto,
+          profilePhotoSlots: currentSlots,
+        },
+      };
+    });
   };
 
   const removeProfilePhoto = () => {
@@ -306,7 +433,11 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.warn('Failed to remove portfolio_profile_photo cache', e);
     }
     updatePersonalInfo({ profilePhotoUrl: '' });
-    saveGlobalProfilePhoto('');
+    saveGlobalProfileData({
+      profilePhotoUrl: '',
+      photoSlots: normalizeSlots(state.personalInfo.profilePhotoSlots),
+      activePhotoSlot: state.personalInfo.activePhotoSlot ?? 0,
+    });
   };
 
   const uploadCV = (fileData: string, fileName: string, fileSize?: string) => {
@@ -626,6 +757,9 @@ Date: ${new Date().toLocaleDateString('en-GB')}
         updatePersonalInfo,
         updateProfilePhoto,
         removeProfilePhoto,
+        updateProfilePhotoSlot,
+        selectProfilePhotoSlot,
+        removeProfilePhotoSlot,
         uploadCV,
         removeCV,
         downloadCV,

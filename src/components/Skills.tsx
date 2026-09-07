@@ -52,10 +52,10 @@ export const Skills: React.FC = () => {
         {/* Section Header with Scroll Text Reveal */}
         <div className="text-center max-w-3xl mx-auto mb-14">
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -15 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-50px' }}
-            transition={{ duration: 0.4 }}
+            viewport={{ once: false, amount: 0.2 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-3 border ${
               theme === 'orange'
                 ? 'text-orange-400 bg-orange-500/10 border-orange-500/20'
@@ -66,10 +66,10 @@ export const Skills: React.FC = () => {
           </motion.div>
 
           <motion.h2
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-50px' }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            viewport={{ once: false, amount: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
             className={`text-3xl sm:text-5xl font-black tracking-tight ${
               theme === 'dark' || theme === 'orange' ? 'text-white' : 'text-slate-950'
             }`}
@@ -80,8 +80,8 @@ export const Skills: React.FC = () => {
           <motion.div
             initial={{ scaleX: 0 }}
             whileInView={{ scaleX: 1 }}
-            viewport={{ once: true, margin: '-50px' }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            viewport={{ once: false, amount: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className={`w-20 h-1 mx-auto mt-4 rounded-full ${
               theme === 'orange'
                 ? 'bg-gradient-to-r from-orange-500 to-amber-400'
@@ -90,10 +90,10 @@ export const Skills: React.FC = () => {
           />
 
           <motion.p
-            initial={{ opacity: 0, y: 15 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-50px' }}
-            transition={{ duration: 0.5, delay: 0.25 }}
+            viewport={{ once: false, amount: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className={`text-sm sm:text-base mt-4 max-w-2xl mx-auto leading-relaxed font-medium ${
               theme === 'orange'
                 ? 'text-amber-200/80'
@@ -109,10 +109,10 @@ export const Skills: React.FC = () => {
 
         {/* Category Filter Chips */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-50px' }}
-          transition={{ duration: 0.5, delay: 0.3 }}
+          viewport={{ once: false, amount: 0.2 }}
+          transition={{ duration: 0.5, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
           className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-12"
         >
           {categories.map((cat) => (
@@ -142,13 +142,13 @@ export const Skills: React.FC = () => {
           {filteredSkills.map((skill: SkillItem, index: number) => (
             <motion.div
               key={skill.id}
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 36 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-40px' }}
+              viewport={{ once: false, amount: 0.15 }}
               transition={{
-                duration: 0.45,
-                delay: Math.min(index * 0.05, 0.4),
-                ease: 'easeOut',
+                duration: 0.55,
+                delay: Math.min((index % 6) * 0.08, 0.4),
+                ease: [0.22, 1, 0.36, 1],
               }}
               whileHover={{ y: -6, transition: { duration: 0.2 } }}
               className={`group relative p-6 rounded-2xl border transition-all duration-300 flex flex-col justify-between overflow-hidden ${
@@ -267,7 +267,7 @@ export const Skills: React.FC = () => {
                   <motion.div
                     initial={{ width: 0 }}
                     whileInView={{ width: `${skill.proficiency}%` }}
-                    viewport={{ once: true }}
+                    viewport={{ once: false }}
                     transition={{ duration: 0.8, delay: 0.2 }}
                     className={`h-full rounded-full ${
                       theme === 'orange'
