@@ -13,8 +13,11 @@ import {
   CertificationItem,
   TestimonialItem,
   JobDescriptionData,
+  VaultDocument,
 } from '../types/portfolio';
 import { initialJobDescriptionData } from '../data/jobDescriptionData';
+import { initialVaultDocuments } from '../data/defaultVaultData';
+import { triggerFileDownload } from '../utils/fileDownloader';
 import {
   fetchGlobalProfileData,
   saveGlobalProfileData,
@@ -50,6 +53,7 @@ export interface PortfolioFullState {
   educations: EducationItem[];
   certifications: CertificationItem[];
   testimonials: TestimonialItem[];
+  vaultDocuments?: VaultDocument[];
 }
 
 interface PortfolioContextType {
@@ -67,6 +71,7 @@ interface PortfolioContextType {
   educations: EducationItem[];
   certifications: CertificationItem[];
   testimonials: TestimonialItem[];
+  vaultDocuments: VaultDocument[];
 
   // Actions
   updatePersonalInfo: (info: Partial<PersonalInfo>) => void;
@@ -84,6 +89,12 @@ interface PortfolioContextType {
   uploadJobDescription: (fileData: string, fileName: string, fileSize?: string) => void;
   removeJobDescription: () => void;
   downloadJobDescription: () => void;
+
+  // DATA Vault Actions
+  addVaultDocument: (doc: VaultDocument) => void;
+  updateVaultDocument: (id: string, updated: Partial<VaultDocument>) => void;
+  deleteVaultDocument: (id: string) => void;
+  downloadVaultDocument: (docOrId: VaultDocument | string) => void;
 
   // Modals
   isCVModalOpen: boolean;
@@ -133,6 +144,7 @@ const defaultState: PortfolioFullState = {
   educations: initialEducations,
   certifications: initialCertifications,
   testimonials: initialTestimonials,
+  vaultDocuments: initialVaultDocuments,
 };
 
 const PortfolioContext = createContext<PortfolioContextType | undefined>(undefined);
@@ -162,6 +174,17 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const baseDefaultPhoto = defaultState.personalInfo.profilePhotoUrl || '/profile-photo.jpg';
 
+    // Check separate vault documents key
+    let loadedVaultDocs = initialVaultDocuments;
+    try {
+      const separateVault = JSON.parse(localStorage.getItem('portfolio_vault_documents_v1') || '[]');
+      if (Array.isArray(separateVault) && separateVault.length > 0) {
+        loadedVaultDocs = separateVault;
+      }
+    } catch {
+      // ignore
+    }
+
     // 1. Try loading full state from localStorage
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -177,9 +200,14 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 ? parsed.personalInfo.profilePhotoUrl
                 : baseDefaultPhoto);
 
+        const parsedVault = Array.isArray(parsed.vaultDocuments) && parsed.vaultDocuments.length > 0
+          ? parsed.vaultDocuments
+          : loadedVaultDocs;
+
         return {
           ...defaultState,
           ...parsed,
+          vaultDocuments: parsedVault,
           personalInfo: {
             ...defaultState.personalInfo,
             ...parsed.personalInfo,
@@ -483,13 +511,11 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const downloadCV = () => {
     if (state.personalInfo.cvUrl) {
-      // User uploaded custom file
-      const link = document.createElement('a');
-      link.href = state.personalInfo.cvUrl;
-      link.download = state.personalInfo.cvFileName || `${state.personalInfo.name.replace(/\s+/g, '_')}_CV.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // User uploaded custom file - download exact uploaded file with exact extension
+      triggerFileDownload(
+        state.personalInfo.cvUrl,
+        state.personalInfo.cvFileName || `${state.personalInfo.name.replace(/\s+/g, '_')}_CV.pdf`
+      );
     } else {
       // Generate clean professional IE Resume text file if no file uploaded
       const resumeContent = `=================================================================
@@ -585,13 +611,11 @@ Date: ${new Date().toLocaleDateString('en-GB')}
 
   const downloadJobDescription = () => {
     if (state.personalInfo.jdUrl) {
-      const link = document.createElement('a');
-      link.href = state.personalInfo.jdUrl;
-      link.download =
-        state.personalInfo.jdFileName || `${state.personalInfo.name.replace(/\s+/g, '_')}_Job_Description.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // User uploaded custom file - download exact uploaded file with exact extension
+      triggerFileDownload(
+        state.personalInfo.jdUrl,
+        state.personalInfo.jdFileName || `${state.personalInfo.name.replace(/\s+/g, '_')}_Job_Description.pdf`
+      );
     } else {
       const jd = state.jobDescriptionData || initialJobDescriptionData;
       const jdContent = `=================================================================
@@ -640,6 +664,68 @@ Date: ${new Date().toLocaleDateString('en-GB')}
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     }
+  };
+
+  // DATA Vault Actions
+  const addVaultDocument = (doc: VaultDocument) => {
+    setState((prev) => {
+      const existing = prev.vaultDocuments || initialVaultDocuments;
+      const updatedDocs = [doc, ...existing];
+      try {
+        localStorage.setItem('portfolio_vault_documents_v1', JSON.stringify(updatedDocs));
+      } catch (e) {
+        console.warn('LocalStorage quota warning for vault documents:', e);
+      }
+      return {
+        ...prev,
+        vaultDocuments: updatedDocs,
+      };
+    });
+  };
+
+  const updateVaultDocument = (id: string, updated: Partial<VaultDocument>) => {
+    setState((prev) => {
+      const existing = prev.vaultDocuments || initialVaultDocuments;
+      const updatedDocs = existing.map((d) => (d.id === id ? { ...d, ...updated } : d));
+      try {
+        localStorage.setItem('portfolio_vault_documents_v1', JSON.stringify(updatedDocs));
+      } catch (e) {
+        console.warn('LocalStorage quota warning for vault documents:', e);
+      }
+      return {
+        ...prev,
+        vaultDocuments: updatedDocs,
+      };
+    });
+  };
+
+  const deleteVaultDocument = (id: string) => {
+    setState((prev) => {
+      const existing = prev.vaultDocuments || initialVaultDocuments;
+      const updatedDocs = existing.filter((d) => d.id !== id);
+      try {
+        localStorage.setItem('portfolio_vault_documents_v1', JSON.stringify(updatedDocs));
+      } catch (e) {
+        console.warn('LocalStorage quota warning for vault documents:', e);
+      }
+      return {
+        ...prev,
+        vaultDocuments: updatedDocs,
+      };
+    });
+  };
+
+  const downloadVaultDocument = (docOrId: VaultDocument | string) => {
+    const doc = typeof docOrId === 'string'
+      ? (state.vaultDocuments || initialVaultDocuments).find((d) => d.id === docOrId)
+      : docOrId;
+
+    if (!doc || !doc.fileData) {
+      console.warn('Document or file data not found for download');
+      return;
+    }
+
+    triggerFileDownload(doc.fileData, doc.fileName || doc.title);
   };
 
   const openCVModal = () => setIsCVModalOpen(true);
@@ -772,6 +858,7 @@ Date: ${new Date().toLocaleDateString('en-GB')}
         educations: state.educations,
         certifications: state.certifications,
         testimonials: state.testimonials,
+        vaultDocuments: state.vaultDocuments || initialVaultDocuments,
 
         updatePersonalInfo,
         updateProfilePhoto,
@@ -787,6 +874,11 @@ Date: ${new Date().toLocaleDateString('en-GB')}
         uploadJobDescription,
         removeJobDescription,
         downloadJobDescription,
+
+        addVaultDocument,
+        updateVaultDocument,
+        deleteVaultDocument,
+        downloadVaultDocument,
 
         isCVModalOpen,
         openCVModal,

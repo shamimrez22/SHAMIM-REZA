@@ -37,7 +37,7 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
 
       {/* 3. Featured Services Overview */}
       <section
-        className={`py-20 section-transition border-t ${
+        className={`py-10 sm:py-12 section-transition border-t ${
           theme === 'dark'
             ? 'bg-[#0f172a] border-slate-800 text-slate-100'
             : theme === 'orange'
@@ -47,15 +47,15 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 35 }}
+            initial={{ opacity: 0, y: 25 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-            className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4"
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col md:flex-row md:items-end justify-between mb-6 sm:mb-7 gap-3"
           >
             <div>
               <div
-                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-2 border ${
+                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-widest uppercase mb-1.5 border ${
                   theme === 'orange'
                     ? 'text-orange-400 bg-orange-500/10 border-orange-500/20'
                     : 'text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/20'
@@ -63,11 +63,11 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
               >
                 WHAT I DELIVER
               </div>
-              <h2 className="text-2xl sm:text-4xl font-black tracking-tight">
+              <h2 className="text-xl sm:text-3xl font-black tracking-tight">
                 FEATURED SERVICES
               </h2>
               <p
-                className={`text-sm mt-2 max-w-xl font-medium ${
+                className={`text-xs sm:text-sm mt-1 max-w-xl font-medium ${
                   theme === 'orange'
                     ? 'text-amber-200/80'
                     : theme === 'dark'
@@ -81,24 +81,24 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
 
             <Link
               to="/services"
-              className={`inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider hover:underline group ${
+              className={`inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider hover:underline group ${
                 theme === 'orange' ? 'text-orange-400' : 'text-blue-600 dark:text-cyan-400'
               }`}
             >
               <span>View All Services &amp; Methodology</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </Link>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
             {services.slice(0, 3).map((service, index) => (
               <motion.div
                 key={service.id}
-                initial={{ opacity: 0, y: 45 }}
+                initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: false, amount: 0.15 }}
-                transition={{ duration: 0.65, delay: index * 0.12, ease: [0.22, 1, 0.36, 1] }}
-                className={`p-6 rounded-2xl border transition-all duration-300 flex flex-col justify-between ${
+                transition={{ duration: 0.5, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                className={`p-4 sm:p-5 rounded-xl border transition-all duration-300 flex flex-col justify-between ${
                   theme === 'orange'
                     ? 'bg-[#1c120a]/90 border-orange-900/60 hover:border-orange-500/60 shadow-lg'
                     : theme === 'dark'
@@ -107,18 +107,33 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
                 }`}
               >
                 <div>
-                  <div
-                    className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 border ${
-                      theme === 'orange'
-                        ? 'bg-orange-500/10 border-orange-500/20 text-orange-400'
-                        : 'bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-cyan-400'
-                    }`}
-                  >
-                    <CheckCircle2 className="w-5 h-5" />
+                  <div className="flex items-center justify-between mb-2.5">
+                    <div
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center border ${
+                        theme === 'orange'
+                          ? 'bg-orange-500/10 border-orange-500/20 text-orange-400'
+                          : 'bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-cyan-400'
+                      }`}
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
+                    <span
+                      className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                        theme === 'orange'
+                          ? 'bg-orange-950/80 text-orange-400/90 border-orange-900/50'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                      }`}
+                    >
+                      0{index + 1}
+                    </span>
                   </div>
-                  <h3 className="text-lg font-black tracking-tight mb-2">{service.title}</h3>
+
+                  <h3 className="text-sm sm:text-base font-black tracking-tight leading-snug mb-1.5 uppercase">
+                    {service.title}
+                  </h3>
+
                   <p
-                    className={`text-xs leading-relaxed mb-4 font-medium ${
+                    className={`text-xs leading-relaxed font-normal mb-2.5 ${
                       theme === 'orange'
                         ? 'text-amber-200/75'
                         : theme === 'dark'
@@ -128,10 +143,30 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
                   >
                     {service.description}
                   </p>
+
+                  {/* Clean, compact deliverables checklist eliminating empty gaps */}
+                  <div
+                    className={`space-y-1.5 py-2 my-1.5 border-t border-dashed ${
+                      theme === 'orange'
+                        ? 'border-orange-950/80 text-amber-100/90'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    {service.deliverables.slice(0, 2).map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 text-[11px] font-medium truncate">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                            theme === 'orange' ? 'bg-orange-500' : 'bg-blue-500'
+                          }`}
+                        />
+                        <span className="truncate">{item}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div
-                  className={`pt-4 border-t flex items-center justify-between text-xs ${
+                  className={`pt-2.5 mt-2 border-t flex items-center justify-between text-xs ${
                     theme === 'orange'
                       ? 'border-orange-950 text-amber-300/70'
                       : 'border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'
@@ -142,11 +177,12 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
                   </span>
                   <Link
                     to="/services"
-                    className={`font-bold hover:underline ${
+                    className={`font-bold hover:underline inline-flex items-center gap-1 ${
                       theme === 'orange' ? 'text-orange-400' : 'text-blue-600 dark:text-cyan-400'
                     }`}
                   >
-                    Details →
+                    <span>Details</span>
+                    <span>→</span>
                   </Link>
                 </div>
               </motion.div>
@@ -157,7 +193,7 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
 
       {/* 4. Top Skills Snapshot */}
       <section
-        className={`py-20 section-transition border-t ${
+        className={`py-10 sm:py-12 section-transition border-t ${
           theme === 'dark'
             ? 'bg-[#0b1120] border-slate-800 text-slate-100'
             : theme === 'orange'
@@ -167,15 +203,15 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 35 }}
+            initial={{ opacity: 0, y: 25 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-            className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4"
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col md:flex-row md:items-end justify-between mb-6 sm:mb-7 gap-3"
           >
             <div>
               <div
-                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-2 border ${
+                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-widest uppercase mb-1.5 border ${
                   theme === 'orange'
                     ? 'text-amber-400 bg-amber-500/10 border-amber-500/20'
                     : 'text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border-cyan-500/20'
@@ -183,11 +219,11 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
               >
                 CORE PROFICIENCIES
               </div>
-              <h2 className="text-2xl sm:text-4xl font-black tracking-tight">
+              <h2 className="text-xl sm:text-3xl font-black tracking-tight">
                 PRIMARY SKILLS &amp; TOOLS
               </h2>
               <p
-                className={`text-sm mt-2 max-w-xl font-medium ${
+                className={`text-xs sm:text-sm mt-1 max-w-xl font-medium ${
                   theme === 'orange'
                     ? 'text-amber-200/80'
                     : theme === 'dark'
@@ -201,24 +237,24 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
 
             <Link
               to="/skills"
-              className={`inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider hover:underline group ${
+              className={`inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider hover:underline group ${
                 theme === 'orange' ? 'text-orange-400' : 'text-blue-600 dark:text-cyan-400'
               }`}
             >
               <span>Explore All 15 Skills &amp; Tools Suite</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </Link>
           </motion.div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
             {skills.slice(0, 6).map((skill, index) => (
               <motion.div
                 key={skill.id}
-                initial={{ opacity: 0, y: 35 }}
+                initial={{ opacity: 0, y: 25 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: false, amount: 0.15 }}
-                transition={{ duration: 0.5, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
-                className={`p-4 rounded-xl border text-center transition-all ${
+                transition={{ duration: 0.45, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }}
+                className={`p-3.5 rounded-xl border text-center transition-all ${
                   theme === 'orange'
                     ? 'bg-[#181109]/90 border-orange-950 hover:border-orange-500/50'
                     : theme === 'dark'
@@ -227,7 +263,7 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
                 }`}
               >
                 <div
-                  className={`text-xl font-black mb-1 ${
+                  className={`text-lg font-black mb-0.5 ${
                     theme === 'orange' ? 'text-orange-400' : 'text-blue-600 dark:text-cyan-400'
                   }`}
                 >
@@ -235,7 +271,7 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
                 </div>
                 <div className="text-xs font-bold truncate">{skill.name}</div>
                 <div
-                  className={`text-[10px] mt-1 uppercase font-semibold tracking-wider ${
+                  className={`text-[10px] mt-0.5 uppercase font-semibold tracking-wider ${
                     theme === 'orange' ? 'text-amber-400/70' : 'text-slate-500 dark:text-slate-400'
                   }`}
                 >
@@ -249,7 +285,7 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
 
       {/* 5. Sample Work Preview Banner */}
       <section
-        className={`py-20 section-transition border-t ${
+        className={`py-10 sm:py-12 section-transition border-t ${
           theme === 'dark'
             ? 'bg-[#0f172a] border-slate-800 text-slate-100'
             : theme === 'orange'
@@ -259,15 +295,15 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 35 }}
+            initial={{ opacity: 0, y: 25 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-            className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4"
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col md:flex-row md:items-end justify-between mb-6 sm:mb-7 gap-3"
           >
             <div>
               <div
-                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-2 border ${
+                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-widest uppercase mb-1.5 border ${
                   theme === 'orange'
                     ? 'text-orange-400 bg-orange-500/10 border-orange-500/20'
                     : 'text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/20'
@@ -275,11 +311,11 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
               >
                 WORK ARTIFACTS
               </div>
-              <h2 className="text-2xl sm:text-4xl font-black tracking-tight">
+              <h2 className="text-xl sm:text-3xl font-black tracking-tight">
                 SAMPLE WORK PREVIEW
               </h2>
               <p
-                className={`text-sm mt-2 max-w-xl font-medium ${
+                className={`text-xs sm:text-sm mt-1 max-w-xl font-medium ${
                   theme === 'orange'
                     ? 'text-amber-200/80'
                     : theme === 'dark'
@@ -293,24 +329,24 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
 
             <Link
               to="/work"
-              className={`inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider hover:underline group ${
+              className={`inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider hover:underline group ${
                 theme === 'orange' ? 'text-orange-400' : 'text-blue-600 dark:text-cyan-400'
               }`}
             >
               <span>Inspect All Work Samples &amp; Data Sets</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </Link>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
             {sampleWorkProjects.slice(0, 2).map((project, index) => (
               <motion.div
                 key={project.id}
-                initial={{ opacity: 0, y: 40 }}
+                initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: false, amount: 0.15 }}
-                transition={{ duration: 0.65, delay: index * 0.15, ease: [0.22, 1, 0.36, 1] }}
-                className={`p-6 rounded-2xl border transition-all ${
+                transition={{ duration: 0.5, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
+                className={`p-4 sm:p-5 rounded-xl border transition-all ${
                   theme === 'orange'
                     ? 'bg-[#1c120a]/90 border-orange-900/60 hover:border-orange-500/40 shadow-lg'
                     : theme === 'dark'

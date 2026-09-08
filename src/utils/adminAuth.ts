@@ -154,12 +154,12 @@ export function updateAdminCredentials(
 
     return {
       success: true,
-      message: 'লগইন ক্রেডেনশিয়ালস সফলভাবে পরিবর্তন করা হয়েছে! পরবর্তী লগইনে নতুন তথ্য ব্যবহার করুন।',
+      message: 'Admin credentials successfully updated! (ইউজারনেম ও পাসওয়ার্ড সফলভাবে সংরক্ষিত হয়েছে)',
     };
   } catch (err) {
     return {
       success: false,
-      message: 'ক্রেডেনশিয়ালস সংরক্ষণে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।',
+      message: 'Failed to save credentials to local storage. Please try again.',
     };
   }
 }
@@ -181,12 +181,12 @@ export function resetAdminCredentialsToDefault(): { success: boolean; message: s
 
     return {
       success: true,
-      message: 'ক্রেডেনশিয়ালস ডিফল্ট মানে রিসেট হয়েছে (Username: SHAMIM | Password: 321)',
+      message: 'Credentials reset to default (Username: SHAMIM | Password: 321)',
     };
   } catch {
     return {
       success: false,
-      message: 'রিসেট ব্যর্থ হয়েছে।',
+      message: 'Reset failed. Please try again.',
     };
   }
 }

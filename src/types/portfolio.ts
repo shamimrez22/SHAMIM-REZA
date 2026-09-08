@@ -170,3 +170,30 @@ export interface TestimonialItem {
   company: string;
   isPlaceholder?: boolean;
 }
+
+export type VaultFileType =
+  | 'word'
+  | 'excel'
+  | 'pdf'
+  | 'presentation'
+  | 'text'
+  | 'image'
+  | 'archive'
+  | 'other';
+
+export interface VaultDocument {
+  id: string;
+  title: string;
+  fileName: string;
+  fileType: VaultFileType;
+  fileExtension: string;
+  fileSize: string;
+  fileSizeBytes: number;
+  mimeType: string;
+  fileData: string; // Base64 Data URL or direct blob
+  category: string;
+  description?: string;
+  uploadDate: string;
+  createdAt: number;
+}
+

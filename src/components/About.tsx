@@ -42,7 +42,7 @@ export const About: React.FC<AboutProps> = ({ personalInfo }) => {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Section Header with Scroll-Based Text Reveal */}
+        {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <motion.div
             initial={{ opacity: 0, y: -15 }}
@@ -55,7 +55,7 @@ export const About: React.FC<AboutProps> = ({ personalInfo }) => {
                 : 'text-blue-500 bg-blue-500/10 border-blue-500/20'
             }`}
           >
-            DISCOVER MY BACKGROUND
+            Executive Background
           </motion.div>
 
           <motion.h2
@@ -65,7 +65,7 @@ export const About: React.FC<AboutProps> = ({ personalInfo }) => {
             transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
             className="text-3xl sm:text-5xl font-black tracking-tight"
           >
-            ABOUT ME
+            About Me &amp; Professional Philosophy
           </motion.h2>
 
           <motion.div
@@ -93,7 +93,7 @@ export const About: React.FC<AboutProps> = ({ personalInfo }) => {
             className="lg:col-span-7 space-y-6"
           >
             <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Garments IE Reporting &amp; Data Operations Specialist
+              Industrial Engineering Reporting &amp; Executive Data Entry Specialist
             </h3>
 
             <p
@@ -117,9 +117,7 @@ export const About: React.FC<AboutProps> = ({ personalInfo }) => {
                   : 'text-slate-600'
               }`}
             >
-              Whether compiling factory-wide Daily Production Reports (DPR), calculating SMV and sewing line efficiency %, 
-              logging Non-Productive Time (NPT), or executing high-speed typing (65+ WPM), internet research, and daily executive emails, 
-              my core focus is delivering 100% data integrity, structured analysis, and reliable reporting for factory leadership.
+              Whether compiling factory-wide Daily Production Reports (DPR), calculating SMV and sewing line efficiency %, logging Non-Productive Time (NPT), or executing high-speed typing (65+ WPM), internet research, and daily executive emails, my core focus is delivering 100% data integrity, structured analysis, and reliable reporting for factory leadership.
             </p>
 
             {/* Value Highlights */}
@@ -339,7 +337,7 @@ export const About: React.FC<AboutProps> = ({ personalInfo }) => {
                   }`}
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>Download CV / Resume</span>
+                  <span>Download Curriculum Vitae</span>
                 </button>
 
                 <a
@@ -348,7 +346,7 @@ export const About: React.FC<AboutProps> = ({ personalInfo }) => {
                     theme === 'orange' ? 'text-orange-400' : 'text-blue-600 dark:text-cyan-400'
                   }`}
                 >
-                  <span>Inquire Availability</span>
+                  <span>Direct Inquiry</span>
                   <span className="group-hover:translate-x-0.5 transition-transform">→</span>
                 </a>
               </div>

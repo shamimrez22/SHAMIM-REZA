@@ -245,17 +245,35 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    <FileText className="w-5 h-5" />
+                  <div className={`p-2.5 rounded-lg border ${
+                    /\.(xlsx|xls|xlsm|csv)$/i.test(personalInfo.cvFileName || '')
+                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                      : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                  }`}>
+                    {/\.(xlsx|xls|xlsm|csv)$/i.test(personalInfo.cvFileName || '') ? (
+                      <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
+                    ) : (
+                      <FileText className="w-5 h-5 text-blue-400" />
+                    )}
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-black uppercase tracking-wider">OFFICIAL UPLOADED CV FILE</span>
-                      <span className="px-2 py-0.2 rounded text-[9px] font-black bg-emerald-500 text-slate-950">
-                        DIRECT ATTACHMENT
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-black uppercase tracking-wider">
+                        {/\.(xlsx|xls|xlsm|csv)$/i.test(personalInfo.cvFileName || '')
+                          ? 'OFFICIAL EXCEL CV / RESUME'
+                          : 'OFFICIAL UPLOADED CV FILE'}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-black ${
+                        /\.(xlsx|xls|xlsm|csv)$/i.test(personalInfo.cvFileName || '')
+                          ? 'bg-emerald-400 text-slate-950'
+                          : 'bg-emerald-500 text-slate-950'
+                      }`}>
+                        {/\.(xlsx|xls|xlsm|csv)$/i.test(personalInfo.cvFileName || '')
+                          ? 'EXCEL SPREADSHEET'
+                          : 'DIRECT ATTACHMENT'}
                       </span>
                     </div>
-                    <p className="text-xs font-bold mt-0.5">{personalInfo.cvFileName || 'Candidate_CV.pdf'}</p>
+                    <p className="text-xs font-bold mt-0.5 font-mono">{personalInfo.cvFileName || 'Candidate_CV.xlsx'}</p>
                     <p className="text-[10px] opacity-75">
                       Size: {personalInfo.cvFileSize || 'Document File'} • Updated: {personalInfo.cvLastUpdated || 'Recently'}
                     </p>
@@ -265,7 +283,11 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
                 <button
                   type="button"
                   onClick={downloadCV}
-                  className="px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                  className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl text-white flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 ${
+                    /\.(xlsx|xls|xlsm|csv)$/i.test(personalInfo.cvFileName || '')
+                      ? 'bg-emerald-600 hover:bg-emerald-500'
+                      : 'bg-blue-600 hover:bg-blue-500'
+                  }`}
                 >
                   <Download className="w-4 h-4" />
                   <span>Download Uploaded CV</span>

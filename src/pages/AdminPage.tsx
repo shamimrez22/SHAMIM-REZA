@@ -39,9 +39,11 @@ import {
   Images,
   LogOut,
   Key,
+  FolderArchive,
 } from 'lucide-react';
 import { AdminLoginGate } from '../components/AdminLoginGate';
 import { AdminSecuritySettings } from '../components/AdminSecuritySettings';
+import { DataTab } from '../components/admin/DataTab';
 import {
   isUserAdminAuthenticated,
   logoutAdminUser,
@@ -77,16 +79,17 @@ import {
 } from '../utils/cloudSync';
 
 type AdminTab =
+  | 'security'
   | 'profile'
   | 'theme'
   | 'deploy'
   | 'cv'
   | 'job-description'
+  | 'data'
   | 'work'
   | 'skills'
   | 'stats'
   | 'experience'
-  | 'security'
   | 'backup';
 
 export const AdminPage: React.FC = () => {
@@ -129,6 +132,11 @@ export const AdminPage: React.FC = () => {
     resetToDefaults,
     exportBackup,
     importBackup,
+    vaultDocuments,
+    addVaultDocument,
+    updateVaultDocument,
+    deleteVaultDocument,
+    downloadVaultDocument,
   } = usePortfolio();
 
   // Admin Authentication State - Always prompts for password every time the user enters the admin page
@@ -797,6 +805,24 @@ export const AdminPage: React.FC = () => {
               <span>🚀 Live Deploy Sync</span>
             </button>
 
+            {/* Change Username & Password Shortcut Button */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('security')}
+              title="Change Admin Username & Password"
+              className={`inline-flex items-center gap-2 px-3.5 py-2 text-xs font-black uppercase tracking-wider rounded-xl border transition-all ${
+                activeTab === 'security'
+                  ? 'bg-amber-500 text-black border-amber-400 shadow-md shadow-amber-500/20'
+                  : 'border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300'
+              }`}
+            >
+              <Key className="w-4 h-4 text-amber-400" />
+              <span>🔑 Change User &amp; Password</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-black/40 text-amber-200">
+                {activeAdminUser}
+              </span>
+            </button>
+
             <Link
               to="/"
               target="_blank"
@@ -810,26 +836,6 @@ export const AdminPage: React.FC = () => {
               <span>Preview Site</span>
               <ExternalLink className="w-3 h-3 text-slate-400" />
             </Link>
-
-            {/* Security & User Pill */}
-            <button
-              type="button"
-              onClick={() => setActiveTab('security')}
-              title="অ্যাডমিন ক্রেডেনশিয়ালস ও পাসওয়ার্ড পরিবর্তন"
-              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border transition-all ${
-                activeTab === 'security'
-                  ? theme === 'orange'
-                    ? 'bg-orange-600 text-white border-orange-500'
-                    : 'bg-blue-600 text-white border-blue-500'
-                  : theme === 'dark' || theme === 'orange'
-                  ? 'border-slate-700 bg-slate-800/60 hover:bg-slate-800 text-slate-200'
-                  : 'border-slate-300 bg-white hover:bg-slate-100 text-slate-700'
-              }`}
-            >
-              <Key className="w-4 h-4 text-amber-400" />
-              <span className="hidden sm:inline">ইউজার: {activeAdminUser}</span>
-              <span className="sm:hidden">পাসওয়ার্ড</span>
-            </button>
 
             {/* Logout Button */}
             <button
@@ -861,17 +867,18 @@ export const AdminPage: React.FC = () => {
         {/* Tab Navigation Menu */}
         <div className="flex items-center gap-2 overflow-x-auto py-5 border-b border-slate-800/40 no-scrollbar">
           {[
-            { id: 'profile', label: '1. Profile & Photo', icon: User },
-            { id: 'theme', label: '2. Master Theme (কালার থিম)', icon: Palette, badge: adminMasterTheme.toUpperCase() },
-            { id: 'deploy', label: '3. 🚀 Live Deploy (Vercel/Cloudflare)', icon: Globe, badge: 'Live Sync' },
-            { id: 'cv', label: '4. CV & Resume (Upload / Auto)', icon: FileUp, badge: personalInfo.cvUrl ? 'File Uploaded' : 'Auto Ready' },
-            { id: 'job-description', label: '5. Job Description (Upload / Auto)', icon: Briefcase, badge: personalInfo.jdUrl ? 'File Uploaded' : 'Auto Ready' },
-            { id: 'work', label: `6. Work Samples (${sampleWorkProjects.length})`, icon: FileSpreadsheet },
-            { id: 'skills', label: `7. Skills (${skills.length})`, icon: Layers },
-            { id: 'stats', label: '8. Key Stats', icon: BarChart3 },
-            { id: 'experience', label: '9. Experience', icon: Briefcase },
-            { id: 'security', label: '10. Security & Password (লগইন পাসওয়ার্ড)', icon: ShieldCheck, badge: activeAdminUser },
-            { id: 'backup', label: '11. Backup & Reset', icon: RefreshCw },
+            { id: 'security', label: '1. 🔑 Change User & Password', icon: Key, badge: activeAdminUser },
+            { id: 'profile', label: '2. Profile & Photo', icon: User },
+            { id: 'theme', label: '3. Master Theme', icon: Palette, badge: adminMasterTheme.toUpperCase() },
+            { id: 'deploy', label: '4. 🚀 Live Deploy (Vercel/Cloudflare)', icon: Globe, badge: 'Live Sync' },
+            { id: 'cv', label: '5. CV & Resume (Upload / Auto)', icon: FileUp, badge: personalInfo.cvUrl ? 'File Uploaded' : 'Auto Ready' },
+            { id: 'job-description', label: '6. Job Description (Upload / Auto)', icon: Briefcase, badge: personalInfo.jdUrl ? 'File Uploaded' : 'Auto Ready' },
+            { id: 'data', label: `7. 📁 DATA Vault (${vaultDocuments.length})`, icon: FolderArchive, badge: `${vaultDocuments.length} Files` },
+            { id: 'work', label: `8. Work Samples (${sampleWorkProjects.length})`, icon: FileSpreadsheet },
+            { id: 'skills', label: `9. Skills (${skills.length})`, icon: Layers },
+            { id: 'stats', label: '10. Key Stats', icon: BarChart3 },
+            { id: 'experience', label: '11. Experience', icon: Briefcase },
+            { id: 'backup', label: '12. Backup & Reset', icon: RefreshCw },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -910,7 +917,17 @@ export const AdminPage: React.FC = () => {
 
         {/* Tab Contents */}
         <div className="mt-8">
-          {/* ================= TAB 1: PROFILE & PHOTO ================= */}
+          {/* ================= TAB 1: CHANGE USERNAME & PASSWORD ================= */}
+          {activeTab === 'security' && (
+            <AdminSecuritySettings
+              onLogout={handleLogout}
+              showToast={showToast}
+              onCredentialsUpdated={(newUsername) => {
+                setActiveAdminUser(newUsername);
+              }}
+            />
+          )}
+          {/* ================= TAB 2: PROFILE & PHOTO ================= */}
           {activeTab === 'profile' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               {/* Photo Management Column */}
@@ -2031,7 +2048,9 @@ export const AdminPage: React.FC = () => {
                 <div
                   className={`p-6 rounded-xl border mb-8 ${
                     personalInfo.cvUrl
-                      ? 'border-emerald-500/30 bg-emerald-500/5'
+                      ? /\.(xlsx|xls|xlsm|csv)$/i.test(personalInfo.cvFileName || '')
+                        ? 'border-emerald-500/40 bg-emerald-950/20'
+                        : 'border-emerald-500/30 bg-emerald-500/5'
                       : 'border-amber-500/30 bg-amber-500/5'
                   }`}
                 >
@@ -2040,25 +2059,37 @@ export const AdminPage: React.FC = () => {
                       <div
                         className={`p-3 rounded-xl ${
                           personalInfo.cvUrl
-                            ? 'bg-emerald-500/20 text-emerald-400'
+                            ? /\.(xlsx|xls|xlsm|csv)$/i.test(personalInfo.cvFileName || '')
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
                             : 'bg-amber-500/20 text-amber-400'
                         }`}
                       >
-                        <FileText className="w-8 h-8" />
+                        {/\.(xlsx|xls|xlsm|csv)$/i.test(personalInfo.cvFileName || '') ? (
+                          <FileSpreadsheet className="w-8 h-8" />
+                        ) : (
+                          <FileText className="w-8 h-8" />
+                        )}
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-bold tracking-tight">
                             {personalInfo.cvFileName || 'No Custom CV Uploaded Yet'}
                           </span>
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                               personalInfo.cvUrl
-                                ? 'bg-emerald-500 text-white'
+                                ? /\.(xlsx|xls|xlsm|csv)$/i.test(personalInfo.cvFileName || '')
+                                  ? 'bg-emerald-500 text-slate-950 font-black'
+                                  : 'bg-emerald-500 text-white'
                                 : 'bg-amber-500 text-slate-950'
                             }`}
                           >
-                            {personalInfo.cvUrl ? 'Active CV' : 'Default Generator Active'}
+                            {personalInfo.cvUrl
+                              ? /\.(xlsx|xls|xlsm|csv)$/i.test(personalInfo.cvFileName || '')
+                                ? 'EXCEL CV ACTIVE'
+                                : 'Active CV'
+                              : 'Default Generator Active'}
                           </span>
                         </div>
                         <p className="text-xs text-slate-400 mt-1">
@@ -2107,7 +2138,7 @@ export const AdminPage: React.FC = () => {
                   type="file"
                   ref={cvInputRef}
                   onChange={handleCVUpload}
-                  accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.xlsm,.csv,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
                   className="hidden"
                 />
 
@@ -2123,16 +2154,16 @@ export const AdminPage: React.FC = () => {
                     <Upload className="w-8 h-8" />
                   </div>
                   <h4 className="text-base font-extrabold tracking-tight mb-1">
-                    Click to browse or drag and drop your CV file here
+                    Click to browse or drag and drop your CV file here (Excel, Word, PDF)
                   </h4>
                   <p className="text-xs text-slate-400 max-w-md mx-auto mb-4">
-                    Supported formats: <strong>PDF (.pdf)</strong>, <strong>Word (.docx, .doc)</strong>. Max recommended size: 5 MB.
+                    Supported formats: <strong>Excel (.xlsx, .xls, .csv)</strong>, <strong>Word (.docx, .doc)</strong>, <strong>PDF (.pdf)</strong>. Max recommended size: 8 MB.
                   </p>
                   <span
                     className={`inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl ${primaryBtnClass}`}
                   >
                     <Upload className="w-4 h-4" />
-                    <span>Select CV File from Computer</span>
+                    <span>Select CV File (Excel, Word, PDF)</span>
                   </span>
                 </div>
 
@@ -2302,7 +2333,9 @@ export const AdminPage: React.FC = () => {
                 <div
                   className={`p-6 rounded-xl border mb-8 ${
                     personalInfo.jdUrl
-                      ? 'border-cyan-500/30 bg-cyan-500/5'
+                      ? /\.(xlsx|xls|xlsm|csv)$/i.test(personalInfo.jdFileName || '')
+                        ? 'border-emerald-500/40 bg-emerald-950/20'
+                        : 'border-cyan-500/30 bg-cyan-500/5'
                       : 'border-slate-800 bg-slate-900/40'
                   }`}
                 >
@@ -2311,25 +2344,37 @@ export const AdminPage: React.FC = () => {
                       <div
                         className={`p-3 rounded-xl ${
                           personalInfo.jdUrl
-                            ? 'bg-cyan-500/20 text-cyan-400'
+                            ? /\.(xlsx|xls|xlsm|csv)$/i.test(personalInfo.jdFileName || '')
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
                             : 'bg-slate-800 text-slate-400'
                         }`}
                       >
-                        <FileText className="w-8 h-8" />
+                        {/\.(xlsx|xls|xlsm|csv)$/i.test(personalInfo.jdFileName || '') ? (
+                          <FileSpreadsheet className="w-8 h-8" />
+                        ) : (
+                          <FileText className="w-8 h-8" />
+                        )}
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-bold tracking-tight text-white">
                             {personalInfo.jdFileName || 'No Custom Job Description File Uploaded'}
                           </span>
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                               personalInfo.jdUrl
-                                ? 'bg-cyan-500 text-slate-950 font-black'
+                                ? /\.(xlsx|xls|xlsm|csv)$/i.test(personalInfo.jdFileName || '')
+                                  ? 'bg-emerald-500 text-slate-950 font-black'
+                                  : 'bg-cyan-500 text-slate-950 font-black'
                                 : 'bg-slate-700 text-slate-300'
                             }`}
                           >
-                            {personalInfo.jdUrl ? 'Uploaded File Active' : 'Auto Generator Mode'}
+                            {personalInfo.jdUrl
+                              ? /\.(xlsx|xls|xlsm|csv)$/i.test(personalInfo.jdFileName || '')
+                                ? 'EXCEL JD ACTIVE'
+                                : 'Uploaded File Active'
+                              : 'Auto Generator Mode'}
                           </span>
                         </div>
                         <p className="text-xs text-slate-400 mt-1">
@@ -2374,7 +2419,7 @@ export const AdminPage: React.FC = () => {
                   type="file"
                   ref={jdInputRef}
                   onChange={handleJDUpload}
-                  accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.xlsm,.csv,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
                   className="hidden"
                 />
 
@@ -2390,16 +2435,16 @@ export const AdminPage: React.FC = () => {
                     <Upload className="w-7 h-7" />
                   </div>
                   <h4 className="text-sm font-bold tracking-tight mb-1 text-white">
-                    Click to browse or drag &amp; drop your Job Description file
+                    Click to browse or drag &amp; drop your Job Description file (Excel, Word, PDF)
                   </h4>
                   <p className="text-xs text-slate-400 max-w-md mx-auto mb-3">
-                    Supported formats: <strong>PDF (.pdf)</strong>, <strong>Word (.docx, .doc)</strong>. Max size: 5 MB.
+                    Supported formats: <strong>Excel (.xlsx, .xls, .csv)</strong>, <strong>Word (.docx, .doc)</strong>, <strong>PDF (.pdf)</strong>. Max size: 8 MB.
                   </p>
                   <span
                     className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl ${primaryBtnClass}`}
                   >
                     <Upload className="w-3.5 h-3.5" />
-                    <span>Select JD File from Device</span>
+                    <span>Select JD File (Excel, Word, PDF)</span>
                   </span>
                 </div>
 
@@ -2727,7 +2772,31 @@ export const AdminPage: React.FC = () => {
             </div>
           )}
 
-          {/* ================= TAB 5: WORK SAMPLES (WORK SAMPLE ADD / EDIT / DELETE) ================= */}
+          {/* ================= TAB 7: DATA & DOCUMENT VAULT ================= */}
+          {activeTab === 'data' && (
+            <DataTab
+              documents={vaultDocuments}
+              onAddDocument={(doc) => {
+                addVaultDocument(doc);
+                showToast(`✅ ফাইল "${doc.title}" সফলভাবে ডাটা ভল্টে সেভ হয়েছে!`);
+              }}
+              onUpdateDocument={(id, updated) => {
+                updateVaultDocument(id, updated);
+                showToast('✅ ডকুমেন্টের তথ্য আপডেট হয়েছে!');
+              }}
+              onDeleteDocument={(id) => {
+                deleteVaultDocument(id);
+                showToast('🗑️ ফাইলটি ডাটা ভল্ট থেকে মুছে ফেলা হয়েছে।');
+              }}
+              onDownloadDocument={(doc) => {
+                downloadVaultDocument(doc);
+                showToast(`📥 "${doc.fileName}" ফাইলটি হুবহু ডাউনলোড হচ্ছে...`);
+              }}
+              theme={theme}
+            />
+          )}
+
+          {/* ================= TAB: WORK SAMPLES (WORK SAMPLE ADD / EDIT / DELETE) ================= */}
           {activeTab === 'work' && (
             <div>
               {/* Header with "Add New Work Sample" button */}
@@ -3269,11 +3338,6 @@ export const AdminPage: React.FC = () => {
                 </div>
               </div>
             </div>
-          )}
-
-          {/* ================= TAB 10: ADMIN SECURITY & CREDENTIALS ================= */}
-          {activeTab === 'security' && (
-            <AdminSecuritySettings onLogout={handleLogout} showToast={showToast} />
           )}
         </div>
       </div>

@@ -8,6 +8,16 @@ interface FooterProps {
   personalInfo: PersonalInfo;
 }
 
+const footerLinks = [
+  { name: 'HOME', path: '/' },
+  { name: 'ABOUT', path: '/about' },
+  { name: 'SKILLS', path: '/skills' },
+  { name: 'SERVICES', path: '/services' },
+  { name: 'WORK', path: '/work' },
+  { name: 'EXPERIENCE', path: '/experience' },
+  { name: 'CONTACT', path: '/contact' },
+];
+
 export const Footer: React.FC<FooterProps> = ({ personalInfo }) => {
   const { theme } = useTheme();
 
@@ -36,7 +46,7 @@ export const Footer: React.FC<FooterProps> = ({ personalInfo }) => {
           }`}
         >
           {/* Brand Monogram - Link to Admin Panel */}
-          <Link to="/admin" className="flex items-center gap-3 group" title="🛡️ Admin Panel (মাস্টার কন্ট্রোল)">
+          <Link to="/admin" className="flex items-center gap-3 group" title="🛡️ Admin Panel">
             <div
               className={`w-9 h-9 rounded-xl text-white flex items-center justify-center font-bold shadow-sm transition-colors ${
                 theme === 'orange'
@@ -74,76 +84,19 @@ export const Footer: React.FC<FooterProps> = ({ personalInfo }) => {
 
           {/* Quick Nav Links (Individual Pages) */}
           <div className="flex flex-wrap items-center justify-center gap-6 text-xs font-bold">
-            <Link
-              to="/"
-              className={`transition-colors ${
-                theme === 'orange'
-                  ? 'hover:text-orange-400'
-                  : 'hover:text-blue-600 dark:hover:text-white'
-              }`}
-            >
-              Home
-            </Link>
-            <Link
-              to="/about"
-              className={`transition-colors ${
-                theme === 'orange'
-                  ? 'hover:text-orange-400'
-                  : 'hover:text-blue-600 dark:hover:text-white'
-              }`}
-            >
-              About
-            </Link>
-            <Link
-              to="/skills"
-              className={`transition-colors ${
-                theme === 'orange'
-                  ? 'hover:text-orange-400'
-                  : 'hover:text-blue-600 dark:hover:text-white'
-              }`}
-            >
-              Skills
-            </Link>
-            <Link
-              to="/services"
-              className={`transition-colors ${
-                theme === 'orange'
-                  ? 'hover:text-orange-400'
-                  : 'hover:text-blue-600 dark:hover:text-white'
-              }`}
-            >
-              Services
-            </Link>
-            <Link
-              to="/work"
-              className={`transition-colors ${
-                theme === 'orange'
-                  ? 'hover:text-orange-400'
-                  : 'hover:text-blue-600 dark:hover:text-white'
-              }`}
-            >
-              Work
-            </Link>
-            <Link
-              to="/experience"
-              className={`transition-colors ${
-                theme === 'orange'
-                  ? 'hover:text-orange-400'
-                  : 'hover:text-blue-600 dark:hover:text-white'
-              }`}
-            >
-              Experience
-            </Link>
-            <Link
-              to="/contact"
-              className={`transition-colors ${
-                theme === 'orange'
-                  ? 'hover:text-orange-400'
-                  : 'hover:text-blue-600 dark:hover:text-white'
-              }`}
-            >
-              Contact
-            </Link>
+            {footerLinks.map((link) => (
+              <Link
+                key={link.name}
+                to={link.path}
+                className={`transition-colors ${
+                  theme === 'orange'
+                    ? 'hover:text-orange-400'
+                    : 'hover:text-blue-600 dark:hover:text-white'
+                }`}
+              >
+                {link.name}
+              </Link>
+            ))}
           </div>
 
           {/* Scroll to Top */}

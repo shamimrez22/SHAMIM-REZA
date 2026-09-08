@@ -14,26 +14,29 @@ import {
   LogOut,
   Sparkles,
   Check,
+  Zap,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import {
   getAdminCredentials,
   updateAdminCredentials,
   resetAdminCredentialsToDefault,
-  logoutAdminUser,
   DEFAULT_ADMIN_USERNAME,
   DEFAULT_ADMIN_PASSWORD,
   AdminCredentials,
 } from '../utils/adminAuth';
+import { syncAdminCredentialsToCloud } from '../utils/cloudSync';
 
 interface AdminSecuritySettingsProps {
   onLogout: () => void;
   showToast: (msg: string) => void;
+  onCredentialsUpdated?: (newUsername: string) => void;
 }
 
 export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
   onLogout,
   showToast,
+  onCredentialsUpdated,
 }) => {
   const { theme } = useTheme();
 
@@ -57,78 +60,97 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
     setNewUsername(current.username);
   }, []);
 
-  const handleUpdate = (e: React.FormEvent) => {
+  const handleAutoFillCurrentPassword = () => {
+    setCurrentPassword(creds.password);
+    showToast('Current password filled from active session');
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
     setFormSuccess(null);
 
-    if (!newUsername.trim()) {
-      setFormError('অনুগ্রহ করে নতুন ইউজারনেম লিখুন।');
+    const cleanUser = newUsername.trim();
+    const cleanPass = newPassword.trim();
+    const cleanCurr = currentPassword.trim();
+
+    if (!cleanUser) {
+      setFormError('Please enter a valid username (নতুন ইউজারনেম দিন)।');
       return;
     }
 
-    if (!currentPassword.trim()) {
-      setFormError('পরিবর্তন করার জন্য আপনার বর্তমান পাসওয়ার্ড দিন।');
+    if (!cleanCurr) {
+      setFormError('Please enter your current password to authorize changes (বর্তমান পাসওয়ার্ড দিন)।');
       return;
     }
 
-    if (!newPassword.trim()) {
-      setFormError('অনুগ্রহ করে নতুন পাসওয়ার্ড দিন।');
+    if (!cleanPass) {
+      setFormError('Please enter your new password (নতুন পাসওয়ার্ড দিন)।');
       return;
     }
 
-    if (newPassword.trim().length < 3) {
-      setFormError('নতুন পাসওয়ার্ড কমপক্ষে ৩ অক্ষরের হতে হবে।');
+    if (cleanPass.length < 3) {
+      setFormError('Password must be at least 3 characters long (পাসওয়ার্ড কমপক্ষে ৩ অক্ষরের হতে হবে)।');
       return;
     }
 
-    if (newPassword.trim() !== confirmPassword.trim()) {
-      setFormError('নতুন পাসওয়ার্ড এবং নিশ্চিতকরণ পাসওয়ার্ড মেলেনি!');
+    if (cleanPass !== confirmPassword.trim()) {
+      setFormError('New password and confirm password do not match (পাসওয়ার্ড দুটো মেলেনি)!');
       return;
     }
 
     setIsSaving(true);
 
-    setTimeout(() => {
-      const res = updateAdminCredentials(
-        currentPassword,
-        newUsername.trim(),
-        newPassword.trim()
-      );
-
-      setIsSaving(false);
+    try {
+      const res = updateAdminCredentials(cleanCurr, cleanUser, cleanPass);
 
       if (res.success) {
-        setFormSuccess(res.message);
-        showToast('✅ ' + res.message);
+        // Sync to cloud Firestore
+        await syncAdminCredentialsToCloud(cleanUser, cleanPass);
+
         const updated = getAdminCredentials();
         setCreds(updated);
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
+        setFormSuccess('Admin Username & Password successfully updated and synced!');
+        showToast('✅ Admin credentials updated successfully!');
+
+        if (onCredentialsUpdated) {
+          onCredentialsUpdated(cleanUser);
+        }
       } else {
         setFormError(res.message);
       }
-    }, 400);
+    } catch {
+      setFormError('An unexpected error occurred while saving credentials.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleResetToDefault = () => {
+  const handleResetToDefault = async () => {
     const confirmed = window.confirm(
-      `আপনি কি নিশ্চিত যে অ্যাডমিন ক্রেডেনশিয়ালস ডিফল্ট মানে রিসেট করতে চান?\n\nডিফল্ট:\nইউজারনেম: ${DEFAULT_ADMIN_USERNAME}\nপাসওয়ার্ড: ${DEFAULT_ADMIN_PASSWORD}`
+      `Are you sure you want to reset admin credentials to defaults?\n\nDefault Username: ${DEFAULT_ADMIN_USERNAME}\nDefault Password: ${DEFAULT_ADMIN_PASSWORD}`
     );
 
     if (confirmed) {
       const res = resetAdminCredentialsToDefault();
       if (res.success) {
+        await syncAdminCredentialsToCloud(DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD);
         const updated = getAdminCredentials();
         setCreds(updated);
         setNewUsername(updated.username);
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
-        setFormSuccess(res.message);
+        setFormSuccess('Reset to defaults: Username: SHAMIM | Password: 321');
         setFormError(null);
-        showToast('🔄 ' + res.message);
+        showToast('🔄 Credentials reset to default');
+
+        if (onCredentialsUpdated) {
+          onCredentialsUpdated(DEFAULT_ADMIN_USERNAME);
+        }
       }
     }
   };
@@ -166,13 +188,13 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-black tracking-tight">অ্যাডমিন সিকিউরিটি ও পাসওয়ার্ড কন্ট্রোল</h2>
+                <h2 className="text-xl font-black tracking-tight">Admin Security & Password Control</h2>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                  সক্রিয় সুরক্ষাব্যবস্থা
+                  Active
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-slate-400 mt-1 font-medium">
-                অ্যাডমিন প্যানেলে লগইন করার ইউজারনেম ও পাসওয়ার্ড এখান থেকে যে কোনো সময় পরিবর্তন ও পরিচালনা করতে পারেন।
+                Manage and update your admin login username and password anytime. Changes persist locally and in cloud storage.
               </p>
             </div>
           </div>
@@ -181,17 +203,17 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
             type="button"
             onClick={onLogout}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition-all active:scale-95 shrink-0"
-            title="বর্তমান অ্যাডমিন সেশন থেকে লগআউট করুন"
+            title="Logout from admin session"
           >
             <LogOut className="w-4 h-4" />
-            <span>লগআউট (Logout)</span>
+            <span>Logout</span>
           </button>
         </div>
 
         {/* Current Info Pills */}
         <div className="mt-6 pt-5 border-t border-slate-800/60 grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className={`p-3.5 rounded-xl border ${theme === 'orange' ? 'bg-orange-500/5 border-orange-500/20' : 'bg-slate-800/40 border-slate-800'}`}>
-            <span className="text-[11px] font-bold text-slate-400 block mb-1 uppercase tracking-wider">বর্তমান ইউজারনেম</span>
+            <span className="text-[11px] font-bold text-slate-400 block mb-1 uppercase tracking-wider">Active Username</span>
             <div className="flex items-center gap-2">
               <User className="w-4 h-4 text-emerald-400" />
               <span className="text-base font-black font-mono tracking-wider">{creds.username}</span>
@@ -199,7 +221,7 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
           </div>
 
           <div className={`p-3.5 rounded-xl border ${theme === 'orange' ? 'bg-orange-500/5 border-orange-500/20' : 'bg-slate-800/40 border-slate-800'}`}>
-            <span className="text-[11px] font-bold text-slate-400 block mb-1 uppercase tracking-wider">পাসওয়ার্ড স্ট্যাটাস</span>
+            <span className="text-[11px] font-bold text-slate-400 block mb-1 uppercase tracking-wider">Password Protected</span>
             <div className="flex items-center gap-2">
               <KeyRound className="w-4 h-4 text-amber-400" />
               <span className="text-base font-black tracking-wider">••••••••</span>
@@ -208,11 +230,11 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
           </div>
 
           <div className={`p-3.5 rounded-xl border ${theme === 'orange' ? 'bg-orange-500/5 border-orange-500/20' : 'bg-slate-800/40 border-slate-800'}`}>
-            <span className="text-[11px] font-bold text-slate-400 block mb-1 uppercase tracking-wider">শেষ পরিবর্তন</span>
+            <span className="text-[11px] font-bold text-slate-400 block mb-1 uppercase tracking-wider">Last Modified</span>
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-blue-400" />
               <span className="text-xs font-semibold text-slate-300">
-                {creds.updatedAt ? new Date(creds.updatedAt).toLocaleDateString() : 'ডিফল্ট মান'}
+                {creds.updatedAt ? new Date(creds.updatedAt).toLocaleDateString() : 'Default'}
               </span>
             </div>
           </div>
@@ -223,17 +245,17 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
       <div className={`p-6 sm:p-8 rounded-2xl border ${cardBgClass}`}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2.5">
-            <KeyRound className="w-5 h-5 text-orange-500" />
-            <h3 className="text-lg font-black tracking-tight">ইউজারনেম ও পাসওয়ার্ড পরিবর্তন করুন</h3>
+            <KeyRound className="w-5 h-5 text-amber-500" />
+            <h3 className="text-lg font-black tracking-tight">Change Admin Username & Password</h3>
           </div>
           <button
             type="button"
             onClick={handleResetToDefault}
             className="text-xs font-bold text-slate-400 hover:text-amber-400 transition-colors flex items-center gap-1.5"
-            title="ডিফল্ট SHAMIM / 321 মানে ফেরত যান"
+            title="Reset to default SHAMIM / 321"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>ডিফল্ট রিসেট</span>
+            <span>Reset to Default</span>
           </button>
         </div>
 
@@ -273,7 +295,7 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
                 htmlFor="new-admin-username"
                 className="block text-xs font-bold uppercase tracking-wider mb-2 text-slate-300"
               >
-                নতুন ইউজারনেম (New Username) *
+                New Username (নতুন ইউজারনেম) *
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -290,18 +312,29 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
                 />
               </div>
               <span className="text-[11px] text-slate-400 mt-1 block">
-                লগইনের সময় বড় বা ছোট হাতের অক্ষরে লিখলেও কাজ করবে।
+                Case-insensitive during login (যেকোনো কেসে টাইপ করলেই লগইন হবে)।
               </span>
             </div>
 
             {/* Current Password Verification */}
             <div>
-              <label
-                htmlFor="current-admin-password"
-                className="block text-xs font-bold uppercase tracking-wider mb-2 text-slate-300"
-              >
-                বর্তমান পাসওয়ার্ড (Current Password) *
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label
+                  htmlFor="current-admin-password"
+                  className="block text-xs font-bold uppercase tracking-wider text-slate-300"
+                >
+                  Current Password (বর্তমান পাসওয়ার্ড) *
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAutoFillCurrentPassword}
+                  className="text-[10px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors"
+                  title="Auto-fill password from current session"
+                >
+                  <Zap className="w-3 h-3" />
+                  <span>Auto-fill Current</span>
+                </button>
+              </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                   <Lock className="w-4 h-4" />
@@ -311,7 +344,7 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
                   type={showCurrentPass ? 'text' : 'password'}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="বর্তমান পাসওয়ার্ড দিন (e.g. 321)"
+                  placeholder="Enter current password (e.g. 321)"
                   required
                   className={`w-full pl-10 pr-12 py-3 rounded-xl text-sm font-semibold tracking-wide border transition-all outline-none ${inputClass}`}
                 />
@@ -325,7 +358,7 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
                 </button>
               </div>
               <span className="text-[11px] text-slate-400 mt-1 block">
-                নিরাপত্তার জন্য বর্তমান পাসওয়ার্ডটি দিয়ে যাচাই করতে হবে।
+                Required for security verification before saving changes.
               </span>
             </div>
           </div>
@@ -338,7 +371,7 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
                 htmlFor="new-admin-password"
                 className="block text-xs font-bold uppercase tracking-wider mb-2 text-slate-300"
               >
-                নতুন পাসওয়ার্ড (New Password) *
+                New Password (নতুন পাসওয়ার্ড) *
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -349,7 +382,7 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
                   type={showNewPass ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="নতুন পাসওয়ার্ড লিখুন"
+                  placeholder="Enter new password"
                   required
                   className={`w-full pl-10 pr-12 py-3 rounded-xl text-sm font-semibold tracking-wide border transition-all outline-none ${inputClass}`}
                 />
@@ -363,7 +396,7 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
                 </button>
               </div>
               <span className="text-[11px] text-slate-400 mt-1 block">
-                কমপক্ষে ৩ অক্ষর বা সংখ্যার হতে হবে।
+                Minimum 3 characters or numbers (কমপক্ষে ৩ অক্ষর বা সংখ্যা)।
               </span>
             </div>
 
@@ -373,7 +406,7 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
                 htmlFor="confirm-admin-password"
                 className="block text-xs font-bold uppercase tracking-wider mb-2 text-slate-300"
               >
-                পাসওয়ার্ড নিশ্চিত করুন (Confirm Password) *
+                Confirm New Password (পাসওয়ার্ড নিশ্চিতকরণ) *
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -384,7 +417,7 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
                   type={showConfirmPass ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="পুনরায় নতুন পাসওয়ার্ডটি লিখুন"
+                  placeholder="Re-enter new password"
                   required
                   className={`w-full pl-10 pr-12 py-3 rounded-xl text-sm font-semibold tracking-wide border transition-all outline-none ${inputClass}`}
                 />
@@ -398,7 +431,7 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
                 </button>
               </div>
               <span className="text-[11px] text-slate-400 mt-1 block">
-                নতুন পাসওয়ার্ড এবং এই ইনপুট হুবহু এক হতে হবে।
+                Must match the new password exactly.
               </span>
             </div>
           </div>
@@ -411,7 +444,7 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
               className="px-4 py-2.5 rounded-xl text-xs font-bold border border-slate-700 hover:bg-slate-800 text-slate-300 transition-all flex items-center gap-2"
             >
               <RotateCcw className="w-4 h-4 text-amber-400" />
-              <span>ডিফল্ট রিসেট (SHAMIM / 321)</span>
+              <span>Reset to Default (SHAMIM / 321)</span>
             </button>
 
             <button
@@ -426,12 +459,12 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
               {isSaving ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>সংরক্ষণ করা হচ্ছে...</span>
+                  <span>Saving &amp; Syncing...</span>
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  <span>ক্রেডেনশিয়ালস সেভ করুন</span>
+                  <span>Save Username &amp; Password</span>
                 </>
               )}
             </button>
@@ -449,22 +482,21 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
       >
         <div className="flex items-center gap-2 font-bold text-sm text-white">
           <Sparkles className="w-4 h-4 text-amber-400" />
-          <span>নিরাপত্তা পরামর্শ ও নির্দেশিকা:</span>
+          <span>Security Tips &amp; Guidance:</span>
         </div>
         <ul className="list-disc list-inside space-y-1 text-slate-400">
           <li>
-            ইউজারনেম এবং পাসওয়ার্ড পরিবর্তন করার পর আপনি সরাসরি একই সেশনে কাজ চালিয়ে যেতে পারবেন।
+            After updating username or password, your active session remains authenticated so you can continue editing.
           </li>
           <li>
-            অন্য কোনো ব্রাউজার বা ডিভাইসে ঢোকার সময় আপনার নতুন ইউজারনেম ও পাসওয়ার্ড প্রয়োজন হবে।
+            On your next visit or when opening from a new browser tab or device, use your new credentials.
           </li>
           <li>
-            কখনো পাসওয়ার্ড ভুলে গেলে &quot;ডিফল্ট রিসেট&quot; বাটনে ক্লিক করে সহজেই ইউজারনেম{' '}
-            <strong className="text-white">SHAMIM</strong> এবং পাসওয়ার্ড{' '}
-            <strong className="text-white">321</strong> এ ফিরিয়ে আনতে পারবেন।
+            If you ever forget your custom password, you can use the &quot;Reset to Default&quot; button to revert back to{' '}
+            <strong className="text-white">SHAMIM</strong> / <strong className="text-white">321</strong>.
           </li>
           <li>
-            কাজ শেষ করে সর্বদা উপরে থাকা <strong className="text-white">&quot;লগআউট (Logout)&quot;</strong> বাটনে ক্লিক করে বের হওয়া নিরাপদ।
+            Always click <strong className="text-white">&quot;Logout&quot;</strong> before closing the browser on public or shared computers.
           </li>
         </ul>
       </div>

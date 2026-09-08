@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, Sun, Moon, Flame, FileSpreadsheet, ShieldCheck } from 'lucide-react';
+import { Menu, X, Sun, Moon, Flame, ShieldCheck } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { PersonalInfo } from '../types/portfolio';
 
@@ -20,7 +20,7 @@ const navLinks = [
 ];
 
 export const Navbar: React.FC<NavbarProps> = ({ personalInfo }) => {
-  const { theme, setTheme, adminMasterTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const location = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -101,12 +101,12 @@ export const Navbar: React.FC<NavbarProps> = ({ personalInfo }) => {
       {/* Sticky Navigation Bar */}
       <header className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${navThemeBg()}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          {/* Brand Logo - Direct Gateway to Admin Panel ("LOGOTO CLICK KORLEI ADMIN PANEL DHUKBE") */}
+          {/* Brand Logo - Direct Gateway to Admin Panel */}
           <Link
             to="/admin"
             className="flex items-center gap-2.5 group cursor-pointer"
             id="nav-brand-link"
-            title="🛡️ Admin Panel (লোগোতে ক্লিক করে সরাসরি অ্যাডমিন প্যানেলে প্রবেশ করুন)"
+            title="🛡️ Admin Panel (Click logo to enter Admin Panel)"
           >
             <div
               className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${brandIconGradient} flex items-center justify-center text-white font-bold shadow-md group-hover:scale-105 group-hover:shadow-lg transition-all overflow-hidden border border-white/10`}
@@ -397,7 +397,7 @@ export const Navbar: React.FC<NavbarProps> = ({ personalInfo }) => {
                     }`}
                   >
                     <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    <span>🛡️ Admin Panel (মাস্টার কন্ট্রোল)</span>
+                    <span>Admin Panel Control</span>
                   </Link>
 
                   <Link

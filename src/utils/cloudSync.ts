@@ -205,3 +205,47 @@ export function subscribeToGlobalProfilePhoto(
   });
 }
 
+/**
+ * Saves updated admin credentials to Firebase Firestore for cross-device persistence
+ */
+export async function syncAdminCredentialsToCloud(username: string, password: string): Promise<boolean> {
+  try {
+    const docRef = doc(db, 'portfolio', PORTFOLIO_DOC_ID);
+    await setDoc(
+      docRef,
+      {
+        adminUsername: username,
+        adminPassword: password,
+        adminCredentialsUpdatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+    return true;
+  } catch (err) {
+    console.warn('Failed to sync admin credentials to Firebase Firestore:', err);
+    return false;
+  }
+}
+
+/**
+ * Fetches admin credentials from Firebase Firestore if available
+ */
+export async function fetchAdminCredentialsFromCloud(): Promise<{ username: string; password: string } | null> {
+  try {
+    const docRef = doc(db, 'portfolio', PORTFOLIO_DOC_ID);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      if (typeof data?.adminUsername === 'string' && typeof data?.adminPassword === 'string') {
+        return {
+          username: data.adminUsername,
+          password: data.adminPassword,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch admin credentials from cloud:', err);
+  }
+  return null;
+}
+
