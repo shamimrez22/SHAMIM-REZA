@@ -398,7 +398,7 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
             <div className="relative group">
               {/* Outer Decorative Ambient Rings & Glow */}
               <div
-                className={`absolute -inset-5 rounded-full opacity-60 blur-xl transition-all duration-700 group-hover:opacity-90 ${
+                className={`absolute -inset-4 rounded-full opacity-60 blur-xl transition-all duration-700 group-hover:opacity-90 ${
                   theme === 'orange'
                     ? 'bg-gradient-to-tr from-orange-600/40 via-amber-500/30 to-red-600/30'
                     : theme === 'dark'
@@ -409,16 +409,16 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
 
               {/* Glowing Outline Ring */}
               <div
-                className={`relative p-2.5 rounded-full shadow-2xl profile-glow bg-gradient-to-tr ${
+                className={`relative p-2 sm:p-2.5 rounded-full shadow-2xl profile-glow bg-gradient-to-tr ${
                   theme === 'orange'
                     ? 'from-orange-600 via-amber-400 to-orange-500'
                     : 'from-blue-600 via-cyan-400 to-blue-500'
                 }`}
               >
                 
-                {/* Responsive Circular Container with enlarged, prominent dimensions */}
+                {/* Responsive Circular Container with balanced, optimal dimensions */}
                 <div
-                  className={`w-[300px] h-[300px] sm:w-[380px] sm:h-[380px] md:w-[430px] md:h-[430px] lg:w-[470px] lg:h-[470px] xl:w-[490px] xl:h-[490px] rounded-full overflow-hidden relative border-4 flex items-center justify-center transition-transform duration-500 group-hover:scale-[1.02] shadow-2xl ${
+                  className={`w-[270px] h-[270px] sm:w-[330px] sm:h-[330px] md:w-[380px] md:h-[380px] lg:w-[415px] lg:h-[415px] xl:w-[435px] xl:h-[435px] rounded-full overflow-hidden relative border-4 flex items-center justify-center transition-transform duration-500 group-hover:scale-[1.02] shadow-2xl ${
                     theme === 'orange'
                       ? 'bg-[#140d07] border-orange-700/60'
                       : theme === 'dark'
