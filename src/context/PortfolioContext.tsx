@@ -18,6 +18,7 @@ import {
 import { initialJobDescriptionData } from '../data/jobDescriptionData';
 import { initialVaultDocuments } from '../data/defaultVaultData';
 import { triggerFileDownload } from '../utils/fileDownloader';
+import { downloadCVAsDirectPDF, downloadJobDescriptionAsDirectPDF } from '../utils/documentExport';
 import {
   fetchGlobalProfileData,
   saveGlobalProfileData,
@@ -517,59 +518,16 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         state.personalInfo.cvFileName || `${state.personalInfo.name.replace(/\s+/g, '_')}_CV.pdf`
       );
     } else {
-      // Generate clean professional IE Resume text file if no file uploaded
-      const resumeContent = `=================================================================
-CURRICULUM VITAE - ${state.personalInfo.name.toUpperCase()}
-${state.personalInfo.title}
-=================================================================
-
-Contact Information:
-- Email: ${state.personalInfo.email}
-- Phone: ${state.personalInfo.phone}
-- WhatsApp: ${state.personalInfo.whatsapp}
-- Location: ${state.personalInfo.location}
-- LinkedIn: ${state.personalInfo.linkedin}
-
-Professional Summary:
-${state.personalInfo.intro}
-
-Key Competencies & Garments IE Skills:
-${state.skills.map((s) => `• ${s.name} (${s.proficiency}% Proficiency) - ${s.description}`).join('\n')}
-
-Key Performance Benchmarks:
-${state.statistics.map((st) => `• ${st.label}: ${st.value}${st.suffix} - ${st.description}`).join('\n')}
-
-Professional Experience:
-${state.experiences
-  .map(
-    (e) => `
-[${e.period}] ${e.title}
-${e.company} | ${e.location}
-Responsibilities:
-${e.responsibilities.map((r) => `  - ${r}`).join('\n')}`
-  )
-  .join('\n')}
-
-Education & Qualifications:
-${state.educations.map((ed) => `• ${ed.degree} | ${ed.institution} (${ed.period}) - ${ed.details}`).join('\n')}
-
-Certifications:
-${state.certifications.map((c) => `• ${c.name} - Issued by ${c.issuer} (${c.year})`).join('\n')}
-
-=================================================================
-Generated via ${state.personalInfo.name} Professional Portfolio
-Date: ${new Date().toLocaleDateString('en-GB')}
-=================================================================`;
-
-      const blob = new Blob([resumeContent], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${state.personalInfo.name.replace(/\s+/g, '_')}_Garments_IE_CV.txt`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      // Generate high-resolution executive vector A4 PDF
+      downloadCVAsDirectPDF(
+        state.personalInfo,
+        state.statistics,
+        state.skills,
+        state.experiences,
+        state.educations,
+        state.certifications,
+        state.personalInfo.cvTemplatePreference || 'Modern_Executive'
+      );
     }
   };
 
@@ -618,51 +576,11 @@ Date: ${new Date().toLocaleDateString('en-GB')}
       );
     } else {
       const jd = state.jobDescriptionData || initialJobDescriptionData;
-      const jdContent = `=================================================================
-JOB DESCRIPTION & SCOPE OF RESPONSIBILITIES
-${jd.jobTitle}
-=================================================================
-
-Department: ${jd.department}
-Industry: ${jd.industry}
-Reporting To: ${jd.reportingTo}
-Experience: ${jd.experienceRequired}
-
-ROLE PURPOSE & OPERATIONAL OBJECTIVE:
-${jd.rolePurpose}
-
-KEY OPERATIONAL DUTIES:
-${jd.duties
-  .map(
-    (d) => `
-DUTY ${d.dutyNumber}: ${d.title} (${d.banglaTitle})
-${d.items.map((it) => `  - ${it}`).join('\n')}`
-  )
-  .join('\n')}
-
-KEY PERFORMANCE INDICATORS (KPIS):
-${jd.kpis.map((k) => `• ${k.title} [Target: ${k.target}]: ${k.desc}`).join('\n')}
-
-TOOLS & OPERATIONAL SOFTWARE:
-${jd.tools.map((t) => `• ${t.name} (${t.category})`).join('\n')}
-
-CANDIDATE QUALIFICATIONS:
-${jd.qualifications.map((q) => `• ${q}`).join('\n')}
-
-=================================================================
-Generated via ${state.personalInfo.name} Professional Portfolio
-Date: ${new Date().toLocaleDateString('en-GB')}
-=================================================================`;
-
-      const blob = new Blob([jdContent], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${jd.jobTitle.replace(/[\s,/]+/g, '_')}_Job_Description.txt`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      downloadJobDescriptionAsDirectPDF(
+        jd,
+        state.personalInfo.name || 'Md. Shamim Reza',
+        'Executive_Report'
+      );
     }
   };
 

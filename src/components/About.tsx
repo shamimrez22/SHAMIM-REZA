@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { User, MapPin, Calendar, CheckCircle, Mail, Briefcase, Copy, Check, FileSpreadsheet, Download } from 'lucide-react';
+import { User, MapPin, Calendar, CheckCircle, Mail, Briefcase, Copy, Check, FileSpreadsheet, Download, Printer, Eye } from 'lucide-react';
 import { PersonalInfo } from '../types/portfolio';
 import { useTheme } from '../context/ThemeContext';
 import { usePortfolio } from '../context/PortfolioContext';
@@ -11,7 +11,7 @@ interface AboutProps {
 
 export const About: React.FC<AboutProps> = ({ personalInfo }) => {
   const { theme } = useTheme();
-  const { openCVModal } = usePortfolio();
+  const { openCVModal, openJDModal, downloadCV, downloadJobDescription } = usePortfolio();
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const copyToClipboard = (text: string, field: string) => {
@@ -32,7 +32,7 @@ export const About: React.FC<AboutProps> = ({ personalInfo }) => {
   return (
     <section
       id="about"
-      className={`relative py-24 section-transition ${
+      className={`relative py-4 sm:py-6 section-transition ${
         theme === 'dark'
           ? 'bg-gradient-to-b from-[#0b1120] via-[#0f172a] to-[#0b1120] text-slate-100'
           : theme === 'orange'
@@ -41,48 +41,8 @@ export const About: React.FC<AboutProps> = ({ personalInfo }) => {
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <motion.div
-            initial={{ opacity: 0, y: -15 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-3 border ${
-              theme === 'orange'
-                ? 'text-orange-400 bg-orange-500/10 border-orange-500/20'
-                : 'text-blue-500 bg-blue-500/10 border-blue-500/20'
-            }`}
-          >
-            Executive Background
-          </motion.div>
-
-          <motion.h2
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="text-3xl sm:text-5xl font-black tracking-tight"
-          >
-            About Me &amp; Professional Philosophy
-          </motion.h2>
-
-          <motion.div
-            initial={{ scaleX: 0 }}
-            whileInView={{ scaleX: 1 }}
-            viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className={`w-20 h-1 mx-auto mt-4 rounded-full ${
-              theme === 'orange'
-                ? 'bg-gradient-to-r from-orange-500 to-amber-400'
-                : 'bg-gradient-to-r from-blue-500 to-cyan-400'
-            }`}
-          />
-        </div>
-
         {/* Content Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
           
           {/* Left Column: Descriptive Narrative */}
           <motion.div
@@ -326,19 +286,75 @@ export const About: React.FC<AboutProps> = ({ personalInfo }) => {
                     : 'border-slate-200 dark:border-slate-800'
                 }`}
               >
-                <button
-                  type="button"
-                  onClick={openCVModal}
-                  id="about-card-download-cv-btn"
-                  className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${
-                    theme === 'orange'
-                      ? 'bg-orange-600 hover:bg-orange-500 text-white border-orange-500'
-                      : 'bg-blue-600 hover:bg-blue-500 text-white border-blue-500'
-                  }`}
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download Curriculum Vitae</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+                  {/* CV Compound Button: Download + Eye Options */}
+                  <div
+                    className={`inline-flex items-stretch rounded-xl border transition-all duration-200 shadow-xs overflow-hidden ${
+                      theme === 'orange'
+                        ? 'border-orange-500 bg-orange-600 text-white'
+                        : 'border-blue-500 bg-blue-600 text-white'
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={downloadCV}
+                      id="about-card-download-cv-btn"
+                      title="Direct Download CV (PDF)"
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold uppercase tracking-wider hover:opacity-90 active:scale-[0.98] transition-all whitespace-nowrap"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download CV</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={openCVModal}
+                      id="about-card-view-cv-eye"
+                      title="View CV Formats & Customization Options"
+                      aria-label="View CV options"
+                      className="inline-flex items-center justify-center px-2.5 py-2 border-l border-white/20 hover:bg-black/15 active:scale-95 transition-all"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-white" />
+                    </button>
+                  </div>
+
+                  {/* JD Compound Button: Download + Eye Options */}
+                  <div
+                    className={`inline-flex items-stretch rounded-xl border transition-all duration-200 shadow-xs overflow-hidden ${
+                      theme === 'orange'
+                        ? 'border-amber-600/70 bg-amber-950/50 text-amber-300'
+                        : 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={downloadJobDescription}
+                      id="about-card-view-jd-btn"
+                      title="Direct Download Job Description (PDF)"
+                      className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold uppercase tracking-wider active:scale-[0.98] transition-all whitespace-nowrap ${
+                        theme === 'orange'
+                          ? 'hover:bg-amber-900/60'
+                          : 'hover:bg-slate-200 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      <Briefcase className={`w-3.5 h-3.5 ${theme === 'orange' ? 'text-amber-400' : 'text-cyan-400'}`} />
+                      <span>Job Description</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={openJDModal}
+                      id="about-card-view-jd-eye"
+                      title="View Job Description Formats & SOP Options"
+                      aria-label="View Job Description options"
+                      className={`inline-flex items-center justify-center px-2.5 py-2 border-l active:scale-95 transition-all ${
+                        theme === 'orange'
+                          ? 'border-amber-600/50 hover:bg-amber-900/60 text-amber-300'
+                          : 'border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
+                      }`}
+                    >
+                      <Eye className={`w-3.5 h-3.5 ${theme === 'orange' ? 'text-amber-400' : 'text-cyan-400'}`} />
+                    </button>
+                  </div>
+                </div>
 
                 <a
                   href="#/contact"

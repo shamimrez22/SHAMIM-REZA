@@ -10,7 +10,7 @@ export const Education: React.FC = () => {
   return (
     <section
       id="education"
-      className={`relative py-24 section-transition border-t ${
+      className={`relative py-5 sm:py-7 section-transition border-t ${
         theme === 'dark'
           ? 'bg-[#09101f] border-slate-800 text-slate-100'
           : theme === 'orange'
@@ -21,13 +21,13 @@ export const Education: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header with Scroll Reveal */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-4 sm:mb-5">
           <motion.div
             initial={{ opacity: 0, y: -15 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, amount: 0.2 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-3 border ${
+            className={`inline-flex items-center gap-2 px-3 py-0.5 rounded-full text-[11px] font-bold tracking-widest uppercase mb-1.5 border ${
               theme === 'orange'
                 ? 'text-orange-400 bg-orange-500/10 border-orange-500/20'
                 : 'text-blue-600 dark:text-cyan-400 bg-blue-500/10 border-blue-500/20'
@@ -41,7 +41,7 @@ export const Education: React.FC = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, amount: 0.2 }}
             transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className={`text-3xl sm:text-5xl font-black tracking-tight ${
+            className={`text-2xl sm:text-3xl font-black tracking-tight ${
               theme === 'dark' || theme === 'orange' ? 'text-white' : 'text-slate-950'
             }`}
           >
@@ -53,7 +53,7 @@ export const Education: React.FC = () => {
             whileInView={{ scaleX: 1 }}
             viewport={{ once: false, amount: 0.2 }}
             transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className={`w-20 h-1 mx-auto mt-4 rounded-full ${
+            className={`w-16 h-1 mx-auto mt-2 rounded-full ${
               theme === 'orange'
                 ? 'bg-gradient-to-r from-orange-500 to-amber-400'
                 : 'bg-gradient-to-r from-blue-500 to-cyan-400'

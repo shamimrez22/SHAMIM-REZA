@@ -58,7 +58,7 @@ export const Statistics: React.FC = () => {
   return (
     <section
       id="statistics"
-      className={`relative py-16 transition-colors duration-500 border-y ${
+      className={`relative py-6 sm:py-8 transition-colors duration-500 border-y ${
         theme === 'dark'
           ? 'bg-[#05080f] border-slate-800 text-white'
           : theme === 'orange'
@@ -67,7 +67,7 @@ export const Statistics: React.FC = () => {
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {statistics.map((stat: StatItem, index: number) => (
             <motion.div
               key={stat.id}
@@ -75,7 +75,7 @@ export const Statistics: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: false, amount: 0.15 }}
               transition={{ duration: 0.6, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
-              className={`p-6 sm:p-8 rounded-2xl border transition-all duration-300 hover:-translate-y-1 ${
+              className={`p-4 sm:p-6 rounded-2xl border transition-all duration-300 hover:-translate-y-1 ${
                 theme === 'orange'
                   ? 'bg-[#181109]/95 border-orange-900/60 hover:border-orange-500/60 shadow-lg shadow-black/30'
                   : theme === 'dark'

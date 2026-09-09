@@ -27,7 +27,7 @@ export const Footer: React.FC<FooterProps> = ({ personalInfo }) => {
 
   return (
     <footer
-      className={`py-12 border-t transition-colors duration-200 ${
+      className={`py-6 sm:py-8 border-t transition-colors duration-200 ${
         theme === 'dark'
           ? 'bg-[#05080f] text-slate-300 border-slate-800'
           : theme === 'orange'
@@ -37,7 +37,7 @@ export const Footer: React.FC<FooterProps> = ({ personalInfo }) => {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div
-          className={`flex flex-col md:flex-row items-center justify-between gap-6 pb-8 border-b ${
+          className={`flex flex-col md:flex-row items-center justify-between gap-4 pb-4 sm:pb-5 border-b ${
             theme === 'orange'
               ? 'border-orange-950'
               : theme === 'dark'

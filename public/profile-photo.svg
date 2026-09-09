@@ -31,21 +31,24 @@
   <circle cx="250" cy="250" r="230" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.4" />
 
   <!-- Corporate Executive Silhouette Shoulders -->
-  <path d="M 60 500 C 75 390, 150 340, 250 340 C 350 340, 425 390, 440 500 Z" fill="url(#silhouette-suit)" />
+  <path d="M 40 500 C 60 380, 140 315, 250 315 C 360 315, 440 380, 460 500 Z" fill="url(#silhouette-suit)" />
+
+  <!-- Executive Neck -->
+  <path d="M 195 210 L 195 330 L 305 330 L 305 210 Z" fill="#1e293b" />
 
   <!-- Executive Collar & Tie Accent -->
-  <polygon points="250,340 215,400 250,450 285,400" fill="#0f172a" stroke="#334155" stroke-width="1.5" />
-  <polygon points="244,350 256,350 262,440 250,470 238,440" fill="url(#accent-ring)" />
-  <polygon points="200,345 225,410 248,340" fill="#f8fafc" opacity="0.9" />
-  <polygon points="300,345 275,410 252,340" fill="#f8fafc" opacity="0.9" />
+  <polygon points="250,315 210,385 250,440 290,385" fill="#0f172a" stroke="#334155" stroke-width="1.5" />
+  <polygon points="244,325 256,325 262,435 250,465 238,435" fill="url(#accent-ring)" />
+  <polygon points="190,320 220,395 248,315" fill="#f8fafc" opacity="0.95" />
+  <polygon points="310,320 280,395 252,315" fill="#f8fafc" opacity="0.95" />
 
-  <!-- Executive Head Silhouette -->
-  <circle cx="250" cy="210" r="85" fill="#1e293b" stroke="#334155" stroke-width="2" />
+  <!-- Executive Head Silhouette (Prominent & Well-Proportioned) -->
+  <circle cx="250" cy="180" r="92" fill="#1e293b" stroke="#334155" stroke-width="2.5" />
   
   <!-- Sleek Professional Monogram SR -->
-  <text x="250" y="228" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="62" font-weight="900" fill="#ffffff" letter-spacing="2">SR</text>
+  <text x="250" y="202" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="68" font-weight="900" fill="#ffffff" letter-spacing="2">SR</text>
 
-  <!-- Small Subtitle -->
-  <rect x="160" y="270" width="180" height="24" rx="12" fill="#ea580c" opacity="0.9" />
-  <text x="250" y="286" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="800" fill="#ffffff" letter-spacing="1.5">EXECUTIVE PROFILE</text>
+  <!-- Small Subtitle Pill -->
+  <rect x="150" y="244" width="200" height="26" rx="13" fill="#ea580c" opacity="0.95" />
+  <text x="250" y="261" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="800" fill="#ffffff" letter-spacing="1.5">EXECUTIVE PROFILE</text>
 </svg>

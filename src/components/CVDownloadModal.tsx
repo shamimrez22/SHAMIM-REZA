@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { usePortfolio } from '../context/PortfolioContext';
-import { downloadCVAsWordDoc, downloadElementAsDirectPDF } from '../utils/documentExport';
+import { downloadCVAsWordDoc, downloadElementAsDirectPDF, downloadCVAsDirectPDF } from '../utils/documentExport';
 
 interface CVDownloadModalProps {
   isOpen: boolean;
@@ -68,17 +68,53 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handlePrint = () => {
+  const handlePrint = (templateOverride?: 'modern' | 'corporate' | 'technical') => {
+    if (templateOverride && templateOverride !== activeTemplate) {
+      setActiveTemplate(templateOverride);
+      setTimeout(() => {
+        document.body.setAttribute('data-modal-open', 'true');
+        document.body.classList.add('modal-open-for-print');
+        window.print();
+      }, 100);
+      return;
+    }
     document.body.setAttribute('data-modal-open', 'true');
     document.body.classList.add('modal-open-for-print');
     window.print();
   };
 
+  const handlePrintUploadedCV = () => {
+    if (personalInfo.cvUrl) {
+      const win = window.open(personalInfo.cvUrl, '_blank');
+      if (win) {
+        win.focus();
+      }
+    }
+  };
+
+  const activeTemplateName =
+    activeTemplate === 'modern'
+      ? 'Modern Executive'
+      : activeTemplate === 'corporate'
+      ? 'Corporate ATS'
+      : 'Technical IE Matrix';
+
   const handleDownloadDirectPDF = async () => {
     await downloadElementAsDirectPDF(
       'printable-cv-area',
       `${(personalInfo?.name || 'Shamim_Reza').replace(/\s+/g, '_')}_Curriculum_Vitae_${activeTemplate}.pdf`,
-      setIsGeneratingPdf
+      setIsGeneratingPdf,
+      () => {
+        downloadCVAsDirectPDF(
+          personalInfo,
+          statistics,
+          skills,
+          experiences,
+          educations,
+          certifications,
+          activeTemplate
+        );
+      }
     );
   };
 
@@ -185,18 +221,19 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
 
               <button
                 type="button"
-                onClick={handlePrint}
-                title="Print or Save as PDF"
+                onClick={() => handlePrint()}
+                title={`Print or Save as PDF (${activeTemplateName})`}
                 className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${
                   theme === 'orange'
-                    ? 'border-orange-800 bg-orange-950/40 text-orange-300 hover:bg-orange-900/60'
+                    ? 'border-orange-600 bg-orange-500/20 text-orange-300 hover:bg-orange-500/30'
                     : theme === 'dark'
-                    ? 'border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700'
-                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
+                    ? 'border-blue-500/50 bg-blue-500/15 text-blue-200 hover:bg-blue-500/25'
+                    : 'border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100'
                 }`}
               >
-                <Printer className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Print / PDF</span>
+                <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden sm:inline">Print CV ({activeTemplateName})</span>
+                <span className="sm:hidden">Print</span>
               </button>
 
               <button
@@ -280,18 +317,34 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={downloadCV}
-                  className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl text-white flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 ${
-                    /\.(xlsx|xls|xlsm|csv)$/i.test(personalInfo.cvFileName || '')
-                      ? 'bg-emerald-600 hover:bg-emerald-500'
-                      : 'bg-blue-600 hover:bg-blue-500'
-                  }`}
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download Uploaded CV</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handlePrintUploadedCV}
+                    title="Open / Print this uploaded CV file"
+                    className={`px-3.5 py-2 text-xs font-black uppercase tracking-wider rounded-xl border flex items-center justify-center gap-1.5 transition-all shadow-xs active:scale-95 ${
+                      theme === 'orange'
+                        ? 'border-emerald-500/40 bg-emerald-950/50 text-emerald-300 hover:bg-emerald-900/60'
+                        : 'border-emerald-600/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/25'
+                    }`}
+                  >
+                    <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Print / View File</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={downloadCV}
+                    className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl text-white flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 ${
+                      /\.(xlsx|xls|xlsm|csv)$/i.test(personalInfo.cvFileName || '')
+                        ? 'bg-emerald-600 hover:bg-emerald-500'
+                        : 'bg-blue-600 hover:bg-blue-500'
+                    }`}
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download Uploaded CV</span>
+                  </button>
+                </div>
               </div>
             )}
 
@@ -308,11 +361,11 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
               </div>
 
               {/* Template Radio Buttons */}
-              <div className="flex items-center gap-1.5 p-1 rounded-xl bg-black/20 border border-white/10 self-start sm:self-auto">
+              <div className="flex items-center gap-1.5 p-1 rounded-xl bg-black/20 border border-white/10 self-start sm:self-auto flex-wrap">
                 <button
                   type="button"
                   onClick={() => setActiveTemplate('modern')}
-                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
                     activeTemplate === 'modern'
                       ? theme === 'orange'
                         ? 'bg-orange-600 text-white shadow-xs'
@@ -320,12 +373,13 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
                       : 'opacity-70 hover:opacity-100'
                   }`}
                 >
-                  Modern Executive
+                  <Award className="w-3.5 h-3.5" />
+                  <span>Modern Executive</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTemplate('corporate')}
-                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
                     activeTemplate === 'corporate'
                       ? theme === 'orange'
                         ? 'bg-orange-600 text-white shadow-xs'
@@ -333,12 +387,13 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
                       : 'opacity-70 hover:opacity-100'
                   }`}
                 >
-                  Corporate ATS
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Corporate ATS</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTemplate('technical')}
-                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
                     activeTemplate === 'technical'
                       ? theme === 'orange'
                         ? 'bg-orange-600 text-white shadow-xs'
@@ -346,7 +401,38 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
                       : 'opacity-70 hover:opacity-100'
                   }`}
                 >
-                  Technical IE Matrix
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Technical IE Matrix</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Active Format Action Banner with Direct Print Option */}
+            <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-900/30 border border-white/10 print:hidden text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-slate-300">Active Template:</span>
+                <span className="px-2.5 py-0.5 rounded-full font-black text-[11px] bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                  {activeTemplateName}
+                </span>
+                <span className="text-[10px] text-emerald-400 font-semibold hidden sm:inline">✓ A4 Print-Ready</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handlePrint(activeTemplate)}
+                  className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-black flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
+                >
+                  <Printer className="w-3.5 h-3.5 text-emerald-300" />
+                  <span>Print {activeTemplateName} (A4)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadDirectPDF}
+                  disabled={isGeneratingPdf}
+                  className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold flex items-center gap-1 shadow-sm transition-all active:scale-95 disabled:opacity-60"
+                >
+                  <FileDown className="w-3.5 h-3.5" />
+                  <span>PDF</span>
                 </button>
               </div>
             </div>
@@ -361,6 +447,33 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
               {/* ========================================================= */}
               {activeTemplate === 'modern' && (
                 <div className="space-y-6">
+                  {/* In-Document Format Print Toolbar */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-3 mb-5 rounded-xl bg-slate-100 border border-slate-300 text-slate-800 print:hidden">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase bg-blue-900 text-white tracking-wider">
+                        FORMAT 1: MODERN EXECUTIVE CV
+                      </span>
+                      <span className="text-xs text-slate-600 font-medium hidden md:inline">Executive Navy Accents • Clean Typography • Photo Dossier</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handlePrint('modern')}
+                        className="px-3 py-1.5 text-xs font-black rounded-lg bg-blue-900 hover:bg-blue-800 text-white flex items-center gap-1.5 shadow-xs transition-all active:scale-95"
+                      >
+                        <Printer className="w-3.5 h-3.5 text-emerald-300" />
+                        <span>Print Modern Executive (A4)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDownloadDirectPDF}
+                        className="px-2.5 py-1.5 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-500 text-white flex items-center gap-1 shadow-xs"
+                      >
+                        <FileDown className="w-3.5 h-3.5" />
+                        <span>PDF</span>
+                      </button>
+                    </div>
+                  </div>
                   {/* Top Header */}
                   <div className="border-b-2 border-slate-900 pb-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
@@ -524,6 +637,34 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
               {/* ========================================================= */}
               {activeTemplate === 'corporate' && (
                 <div className="space-y-5 text-slate-900">
+                  {/* In-Document Format Print Toolbar */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-3 mb-4 rounded-xl bg-slate-100 border border-slate-300 text-slate-800 print:hidden">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase bg-slate-800 text-white tracking-wider">
+                        FORMAT 2: CORPORATE ATS RESUME
+                      </span>
+                      <span className="text-xs text-slate-600 font-medium hidden md:inline">HR ATS Optimized • Clean Monochrome • Fast Scanner Parsing</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handlePrint('corporate')}
+                        className="px-3 py-1.5 text-xs font-black rounded-lg bg-slate-900 hover:bg-slate-800 text-white flex items-center gap-1.5 shadow-xs transition-all active:scale-95"
+                      >
+                        <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Print Corporate ATS (A4)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDownloadDirectPDF}
+                        className="px-2.5 py-1.5 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-500 text-white flex items-center gap-1 shadow-xs"
+                      >
+                        <FileDown className="w-3.5 h-3.5" />
+                        <span>PDF</span>
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Clean ATS Centered Header */}
                   <div className="text-center border-b pb-4">
                     <h1 className="text-2xl font-bold uppercase tracking-wide text-slate-950">
@@ -622,6 +763,34 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
               {/* ========================================================= */}
               {activeTemplate === 'technical' && (
                 <div className="space-y-5 text-slate-900">
+                  {/* In-Document Format Print Toolbar */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-3 mb-4 rounded-xl bg-slate-100 border border-slate-300 text-slate-800 print:hidden">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase bg-emerald-800 text-white tracking-wider">
+                        FORMAT 3: TECHNICAL IE MATRIX
+                      </span>
+                      <span className="text-xs text-slate-600 font-medium hidden md:inline">Garments Engineering Formulas • Operational Benchmarks • Skill Matrix</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handlePrint('technical')}
+                        className="px-3 py-1.5 text-xs font-black rounded-lg bg-emerald-800 hover:bg-emerald-700 text-white flex items-center gap-1.5 shadow-xs transition-all active:scale-95"
+                      >
+                        <Printer className="w-3.5 h-3.5 text-emerald-300" />
+                        <span>Print Technical Matrix (A4)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDownloadDirectPDF}
+                        className="px-2.5 py-1.5 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-500 text-white flex items-center gap-1 shadow-xs"
+                      >
+                        <FileDown className="w-3.5 h-3.5" />
+                        <span>PDF</span>
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Technical Header */}
                   <div className="bg-slate-900 text-white p-4 rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div>
@@ -733,10 +902,11 @@ export const CVDownloadModal: React.FC<CVDownloadModalProps> = ({
               </div>
               <button
                 type="button"
-                onClick={handlePrint}
-                className="px-3 py-1.5 rounded-lg border font-bold text-[11px] shrink-0 hover:bg-white/10"
+                onClick={() => handlePrint()}
+                className="px-3.5 py-1.5 rounded-lg border font-bold text-[11px] shrink-0 hover:bg-white/10 flex items-center gap-1.5 bg-white/10"
               >
-                Print to PDF (A4)
+                <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Print Active CV ({activeTemplateName})</span>
               </button>
             </div>
 

@@ -12,7 +12,7 @@ export const Services: React.FC = () => {
   return (
     <section
       id="services"
-      className={`relative py-12 sm:py-16 section-transition border-t ${
+      className={`relative py-4 sm:py-6 section-transition border-t ${
         theme === 'dark'
           ? 'bg-[#0b1120] border-slate-800 text-slate-100'
           : theme === 'orange'
@@ -21,63 +21,6 @@ export const Services: React.FC = () => {
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Section Header with Scroll Reveal */}
-        <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-10">
-          <motion.div
-            initial={{ opacity: 0, y: -15 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-2 border ${
-              theme === 'orange'
-                ? 'text-orange-400 bg-orange-500/10 border-orange-500/20'
-                : 'text-blue-500 bg-blue-500/10 border-blue-500/20'
-            }`}
-          >
-            SOLUTIONS &amp; DELIVERABLES
-          </motion.div>
-
-          <motion.h2
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="text-2xl sm:text-4xl font-black tracking-tight"
-          >
-            WHAT I CAN DO FOR YOU
-          </motion.h2>
-
-          <motion.div
-            initial={{ scaleX: 0 }}
-            whileInView={{ scaleX: 1 }}
-            viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className={`w-20 h-1 mx-auto mt-3 rounded-full ${
-              theme === 'orange'
-                ? 'bg-gradient-to-r from-orange-500 to-amber-400'
-                : 'bg-gradient-to-r from-blue-500 to-cyan-400'
-            }`}
-          />
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.6, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className={`text-xs sm:text-sm mt-3 max-w-2xl mx-auto leading-relaxed ${
-              theme === 'orange'
-                ? 'text-amber-200/80'
-                : theme === 'dark'
-                ? 'text-slate-300'
-                : 'text-slate-600'
-            }`}
-          >
-            Specialized executive data services tailored to eliminate operational friction, 
-            guarantee data integrity, and liberate valuable internal bandwidth.
-          </motion.p>
-        </div>
-
         {/* 6 Core Services Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {services.map((service: ServiceItem, index: number) => (

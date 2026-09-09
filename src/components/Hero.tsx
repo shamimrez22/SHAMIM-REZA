@@ -11,6 +11,7 @@ import {
   Briefcase,
   ShieldCheck,
   Eye,
+  Printer,
 } from 'lucide-react';
 import { PersonalInfo } from '../types/portfolio';
 import { useTheme } from '../context/ThemeContext';
@@ -44,7 +45,7 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
   };
 
   const displayPhoto = fallbackToSvg
-    ? '/profile-photo.jpg'
+    ? '/profile-photo.svg'
     : personalInfo.profilePhotoUrl || '/profile-photo.jpg';
 
   const displayName = personalInfo.name || 'Shamim Reza';
@@ -59,7 +60,7 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
   return (
     <section
       id="home"
-      className={`relative min-h-screen flex items-center justify-center pt-24 pb-16 overflow-hidden transition-colors duration-500 ${
+      className={`relative flex items-center justify-center pt-24 sm:pt-28 lg:pt-32 pb-4 sm:pb-6 overflow-hidden transition-colors duration-500 ${
         theme === 'dark'
           ? 'bg-gradient-to-b from-[#05080f] via-[#0b1120] to-[#0f172a] text-slate-100'
           : theme === 'orange'
@@ -105,7 +106,7 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-center">
           
           {/* ================= LEFT COLUMN: Harmonious Typographic Lockup ================= */}
-          <div className="lg:col-span-7 flex flex-col justify-center text-left">
+          <div className="lg:col-span-7 xl:col-span-7 flex flex-col justify-center text-left">
             
             {/* Status Pill Badge */}
             <motion.div
@@ -265,74 +266,76 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
               </div>
             </motion.div>
 
-            {/* Compact, Well-Spaced CTA Buttons */}
+            {/* CTA Buttons - flex-nowrap to guarantee all 4 buttons stay strictly in a single horizontal row */}
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.56, ease: 'easeOut' }}
-              className="flex flex-wrap items-center gap-3 mt-5 pt-1"
+              className="flex flex-nowrap items-center gap-2 sm:gap-2.5 mt-4 sm:mt-5 pt-0.5 w-full max-w-full overflow-x-auto lg:overflow-visible pb-1 scrollbar-none"
             >
               {/* Button 1: VIEW MY WORK */}
               <Link
                 to="/work"
                 id="hero-btn-view-work"
-                className={`group relative inline-flex items-center justify-center gap-2 px-5 py-3 text-xs sm:text-sm font-bold tracking-wider uppercase text-white active:scale-[0.98] rounded-xl shadow-md transition-all duration-200 ${
+                className={`group relative inline-flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-2.5 text-xs font-bold tracking-wider uppercase text-white active:scale-[0.98] rounded-xl shadow-md transition-all duration-200 whitespace-nowrap shrink-0 ${
                   theme === 'orange'
                     ? 'bg-orange-600 hover:bg-orange-500 shadow-orange-600/30'
                     : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/30'
                 }`}
               >
                 <span>View My Work</span>
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
               </Link>
 
-              {/* Button 2: DOWNLOAD CV */}
-              <div className="inline-flex items-center rounded-xl border transition-all duration-200 shadow-xs overflow-hidden">
+              {/* Button 2: DOWNLOAD CV (Direct Download on click + Eye icon for Options) */}
+              <div
+                className={`inline-flex items-stretch rounded-xl border transition-all duration-200 shadow-xs shrink-0 overflow-hidden ${
+                  theme === 'orange'
+                    ? 'border-emerald-600/70 bg-emerald-950/40 text-emerald-300'
+                    : theme === 'dark'
+                    ? 'border-emerald-500/60 bg-emerald-950/40 text-emerald-300'
+                    : 'border-emerald-300 bg-emerald-50 text-emerald-800'
+                }`}
+              >
                 <button
                   type="button"
-                  onClick={handleCVClick}
+                  onClick={downloadCV}
                   id="hero-btn-download-cv"
-                  title={personalInfo.cvUrl ? `Direct Download: ${personalInfo.cvFileName || 'CV File'}` : 'Download CV'}
-                  className={`inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-3 text-xs sm:text-sm font-bold tracking-wider uppercase active:scale-[0.98] transition-all duration-200 ${
+                  title="Direct Download CV (PDF)"
+                  className={`inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2.5 text-xs font-bold tracking-wider uppercase active:scale-[0.98] transition-all duration-200 whitespace-nowrap ${
                     theme === 'orange'
-                      ? 'bg-orange-500/10 text-orange-300 hover:bg-orange-500/20'
+                      ? 'hover:bg-emerald-900/60 text-emerald-300'
                       : theme === 'dark'
-                      ? 'bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
-                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                      ? 'hover:bg-emerald-900/60 text-emerald-300'
+                      : 'hover:bg-emerald-100 text-emerald-800'
                   }`}
                 >
-                  <Download className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <Download className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                   <span>Download CV</span>
-                  {personalInfo.cvFileName && (
-                    <span className="hidden xl:inline-block text-[10px] opacity-75 font-mono max-w-[90px] truncate">
-                      ({personalInfo.cvFileName})
-                    </span>
-                  )}
                 </button>
-                {personalInfo.cvUrl && (
-                  <button
-                    type="button"
-                    onClick={openCVModal}
-                    id="hero-btn-preview-cv"
-                    title="Preview CV Templates & Formats"
-                    className={`px-2.5 py-3 border-l text-xs hover:opacity-100 transition-opacity ${
-                      theme === 'orange'
-                        ? 'border-orange-500/30 text-orange-400 bg-orange-500/5 hover:bg-orange-500/20'
-                        : theme === 'dark'
-                        ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/20'
-                        : 'border-blue-200 text-blue-600 bg-blue-100/50 hover:bg-blue-100'
-                    }`}
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={openCVModal}
+                  id="hero-btn-cv-options-eye"
+                  title="View CV Formats & Customization Options (Modern, Corporate, Technical)"
+                  aria-label="View CV options"
+                  className={`inline-flex items-center justify-center px-2 sm:px-2.5 py-2.5 border-l transition-all duration-200 hover:opacity-100 active:scale-95 ${
+                    theme === 'orange'
+                      ? 'border-emerald-600/50 bg-emerald-900/30 hover:bg-emerald-800/60 text-emerald-300'
+                      : theme === 'dark'
+                      ? 'border-emerald-500/40 bg-emerald-900/30 hover:bg-emerald-800/60 text-emerald-300'
+                      : 'border-emerald-200 bg-emerald-100/50 hover:bg-emerald-200/80 text-emerald-800'
+                  }`}
+                >
+                  <Eye className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                </button>
               </div>
 
               {/* Button 3: CONTACT ME */}
               <Link
                 to="/contact"
                 id="hero-btn-contact-me"
-                className={`inline-flex items-center justify-center gap-2 px-5 py-3 text-xs sm:text-sm font-bold tracking-wider uppercase rounded-xl border active:scale-[0.98] transition-all duration-200 ${
+                className={`inline-flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-2.5 text-xs font-bold tracking-wider uppercase rounded-xl border active:scale-[0.98] transition-all duration-200 whitespace-nowrap shrink-0 ${
                   theme === 'orange'
                     ? 'border-orange-900/80 bg-[#1a120a]/90 text-white hover:bg-orange-950 hover:border-orange-700 shadow-xs'
                     : theme === 'dark'
@@ -340,60 +343,62 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
                     : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50 hover:border-slate-400 shadow-xs'
                 }`}
               >
-                <Mail className={`w-4 h-4 ${theme === 'orange' ? 'text-orange-400' : 'text-blue-500'}`} />
+                <Mail className={`w-3.5 h-3.5 ${theme === 'orange' ? 'text-orange-400' : 'text-blue-500'}`} />
                 <span>Contact Me</span>
               </Link>
 
-              {/* Button 4: JOB DESCRIPTION */}
-              <div className="inline-flex items-center rounded-xl border transition-all duration-200 shadow-xs overflow-hidden">
+              {/* Button 4: JOB DESCRIPTION (Direct Download on click + Eye icon for Options) */}
+              <div
+                className={`inline-flex items-stretch rounded-xl border transition-all duration-200 shadow-xs shrink-0 overflow-hidden ${
+                  theme === 'orange'
+                    ? 'border-amber-600/70 bg-amber-950/40 text-amber-300'
+                    : theme === 'dark'
+                    ? 'border-cyan-600/60 bg-cyan-950/40 text-cyan-300'
+                    : 'border-blue-300 bg-blue-50 text-blue-800'
+                }`}
+              >
                 <button
                   type="button"
-                  onClick={handleJDClick}
+                  onClick={downloadJobDescription}
                   id="hero-btn-job-description"
-                  title={personalInfo.jdUrl ? `Direct Download: ${personalInfo.jdFileName || 'Job Description'}` : 'View Full Garments IE Job Description'}
-                  className={`inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-3 text-xs sm:text-sm font-bold tracking-wider uppercase active:scale-[0.98] transition-all duration-200 ${
+                  title="Direct Download Job Description (PDF)"
+                  className={`inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2.5 text-xs font-bold tracking-wider uppercase active:scale-[0.98] transition-all duration-200 whitespace-nowrap ${
                     theme === 'orange'
-                      ? 'bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+                      ? 'hover:bg-amber-900/60 text-amber-300'
                       : theme === 'dark'
-                      ? 'bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20'
-                      : 'bg-blue-50 text-blue-800 hover:bg-blue-100'
+                      ? 'hover:bg-cyan-900/60 text-cyan-300'
+                      : 'hover:bg-blue-100 text-blue-800'
                   }`}
                 >
-                  <Briefcase className={`w-4 h-4 shrink-0 ${theme === 'orange' ? 'text-amber-400' : 'text-cyan-400'}`} />
+                  <Briefcase className={`w-3.5 h-3.5 shrink-0 ${theme === 'orange' ? 'text-amber-400' : 'text-cyan-400'}`} />
                   <span>Job Description</span>
-                  {personalInfo.jdFileName && (
-                    <span className="hidden xl:inline-block text-[10px] opacity-75 font-mono max-w-[90px] truncate">
-                      ({personalInfo.jdFileName})
-                    </span>
-                  )}
                 </button>
-                {personalInfo.jdUrl && (
-                  <button
-                    type="button"
-                    onClick={openJDModal}
-                    id="hero-btn-preview-jd"
-                    title="Preview Full Job Description & KPIs"
-                    className={`px-2.5 py-3 border-l text-xs hover:opacity-100 transition-opacity ${
-                      theme === 'orange'
-                        ? 'border-amber-500/30 text-amber-400 bg-amber-500/5 hover:bg-amber-500/20'
-                        : theme === 'dark'
-                        ? 'border-cyan-500/30 text-cyan-400 bg-cyan-500/5 hover:bg-cyan-500/20'
-                        : 'border-blue-200 text-blue-600 bg-blue-100/50 hover:bg-blue-100'
-                    }`}
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={openJDModal}
+                  id="hero-btn-jd-options-eye"
+                  title="View Job Description Formats & Options (Executive Report, Factory Spreadsheet, SOP)"
+                  aria-label="View Job Description options"
+                  className={`inline-flex items-center justify-center px-2 sm:px-2.5 py-2.5 border-l transition-all duration-200 hover:opacity-100 active:scale-95 ${
+                    theme === 'orange'
+                      ? 'border-amber-600/50 bg-amber-900/30 hover:bg-amber-800/60 text-amber-300'
+                      : theme === 'dark'
+                      ? 'border-cyan-600/40 bg-cyan-900/30 hover:bg-cyan-800/60 text-cyan-300'
+                      : 'border-blue-200 bg-blue-100/50 hover:bg-blue-200/80 text-blue-800'
+                  }`}
+                >
+                  <Eye className={`w-3.5 h-3.5 shrink-0 ${theme === 'orange' ? 'text-amber-400' : 'text-cyan-400'}`} />
+                </button>
               </div>
             </motion.div>
           </div>
 
           {/* ================= RIGHT COLUMN: PROFILE PICTURE ================= */}
-          <div className="lg:col-span-5 flex items-center justify-center lg:justify-end">
+          <div className="lg:col-span-5 xl:col-span-5 flex items-center justify-center lg:justify-end">
             <div className="relative group">
               {/* Outer Decorative Ambient Rings & Glow */}
               <div
-                className={`absolute -inset-4 rounded-full opacity-60 blur-xl transition-all duration-700 group-hover:opacity-90 ${
+                className={`absolute -inset-5 rounded-full opacity-60 blur-xl transition-all duration-700 group-hover:opacity-90 ${
                   theme === 'orange'
                     ? 'bg-gradient-to-tr from-orange-600/40 via-amber-500/30 to-red-600/30'
                     : theme === 'dark'
@@ -404,16 +409,16 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
 
               {/* Glowing Outline Ring */}
               <div
-                className={`relative p-2 rounded-full shadow-2xl profile-glow bg-gradient-to-tr ${
+                className={`relative p-2.5 rounded-full shadow-2xl profile-glow bg-gradient-to-tr ${
                   theme === 'orange'
                     ? 'from-orange-600 via-amber-400 to-orange-500'
                     : 'from-blue-600 via-cyan-400 to-blue-500'
                 }`}
               >
                 
-                {/* 300-440px Responsive Container */}
+                {/* Responsive Circular Container with enlarged, prominent dimensions */}
                 <div
-                  className={`w-[280px] h-[280px] sm:w-[360px] sm:h-[360px] md:w-[400px] md:h-[400px] lg:w-[440px] lg:h-[440px] rounded-full overflow-hidden relative border-4 flex items-center justify-center transition-transform duration-500 group-hover:scale-[1.02] shadow-2xl ${
+                  className={`w-[300px] h-[300px] sm:w-[380px] sm:h-[380px] md:w-[430px] md:h-[430px] lg:w-[470px] lg:h-[470px] xl:w-[490px] xl:h-[490px] rounded-full overflow-hidden relative border-4 flex items-center justify-center transition-transform duration-500 group-hover:scale-[1.02] shadow-2xl ${
                     theme === 'orange'
                       ? 'bg-[#140d07] border-orange-700/60'
                       : theme === 'dark'
@@ -429,7 +434,7 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
                       loading="eager"
                       decoding="async"
                       onError={() => {
-                        if (!fallbackToSvg && displayPhoto !== '/profile-photo.jpg') {
+                        if (!fallbackToSvg && displayPhoto !== '/profile-photo.svg') {
                           setFallbackToSvg(true);
                         } else {
                           setPhotoError(true);

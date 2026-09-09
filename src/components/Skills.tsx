@@ -25,7 +25,7 @@ export const Skills: React.FC = () => {
   return (
     <section
       id="skills"
-      className={`relative py-24 section-transition border-y ${
+      className={`relative py-4 sm:py-6 section-transition border-y ${
         theme === 'dark'
           ? 'bg-[#0b1120] border-slate-800 text-slate-100'
           : theme === 'orange'
@@ -48,72 +48,13 @@ export const Skills: React.FC = () => {
       </div>
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
-        
-        {/* Section Header with Scroll Text Reveal */}
-        <div className="text-center max-w-3xl mx-auto mb-14">
-          <motion.div
-            initial={{ opacity: 0, y: -15 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-3 border ${
-              theme === 'orange'
-                ? 'text-orange-400 bg-orange-500/10 border-orange-500/20'
-                : 'text-blue-600 dark:text-cyan-400 bg-blue-500/10 dark:bg-cyan-500/10 border-blue-500/20 dark:border-cyan-500/20'
-            }`}
-          >
-            VERIFIED EXPERTISE
-          </motion.div>
-
-          <motion.h2
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className={`text-3xl sm:text-5xl font-black tracking-tight ${
-              theme === 'dark' || theme === 'orange' ? 'text-white' : 'text-slate-950'
-            }`}
-          >
-            MY PROFESSIONAL SKILLS
-          </motion.h2>
-
-          <motion.div
-            initial={{ scaleX: 0 }}
-            whileInView={{ scaleX: 1 }}
-            viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className={`w-20 h-1 mx-auto mt-4 rounded-full ${
-              theme === 'orange'
-                ? 'bg-gradient-to-r from-orange-500 to-amber-400'
-                : 'bg-gradient-to-r from-blue-500 to-cyan-400'
-            }`}
-          />
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.6, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className={`text-sm sm:text-base mt-4 max-w-2xl mx-auto leading-relaxed font-medium ${
-              theme === 'orange'
-                ? 'text-amber-200/80'
-                : theme === 'dark'
-                ? 'text-slate-300'
-                : 'text-slate-600'
-            }`}
-          >
-            Comprehensive technical proficiency across data transcription, spreadsheet engineering,
-            format conversion, and executive administrative coordination.
-          </motion.p>
-        </div>
-
         {/* Category Filter Chips */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: false, amount: 0.2 }}
           transition={{ duration: 0.5, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-12"
+          className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-6 sm:mb-8"
         >
           {categories.map((cat) => (
             <button

@@ -9,10 +9,10 @@ export const WorkPage: React.FC = () => {
   const { theme } = useTheme();
 
   return (
-    <div className="pt-20">
+    <div className="pt-16">
       {/* Page Header */}
       <div
-        className={`py-12 border-b ${
+        className={`py-3 sm:py-3.5 border-b ${
           theme === 'dark'
             ? 'bg-[#090e1a] border-slate-800 text-slate-100'
             : theme === 'orange'
@@ -22,7 +22,7 @@ export const WorkPage: React.FC = () => {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div
-            className={`flex items-center gap-2 text-xs font-semibold mb-2 font-mono ${
+            className={`flex items-center gap-2 text-[11px] font-semibold mb-1 font-mono ${
               theme === 'orange' ? 'text-orange-400' : 'text-blue-500'
             }`}
           >
@@ -30,11 +30,11 @@ export const WorkPage: React.FC = () => {
             <span>/</span>
             <span className={theme === 'orange' ? 'text-amber-300/70' : 'text-slate-400'}>Sample Work</span>
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight">
             MY SAMPLE WORK
           </h1>
           <p
-            className={`text-sm sm:text-base mt-2 max-w-2xl leading-relaxed ${
+            className={`text-xs sm:text-sm mt-0.5 max-w-2xl leading-normal ${
               theme === 'orange'
                 ? 'text-amber-200/80'
                 : theme === 'dark'
@@ -52,7 +52,7 @@ export const WorkPage: React.FC = () => {
 
       {/* Collaboration CTA */}
       <section
-        className={`py-16 border-t ${
+        className={`py-5 sm:py-6 border-t ${
           theme === 'dark'
             ? 'bg-[#0b1120] border-slate-800 text-white'
             : theme === 'orange'

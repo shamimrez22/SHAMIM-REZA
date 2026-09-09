@@ -276,6 +276,11 @@
     overflow: visible !important;
   }
 
+  .overflow-x-auto,
+  .overflow-y-auto {
+    overflow: visible !important;
+  }
+
   /* Tables formatting & pagination */
   table {
     page-break-inside: auto;

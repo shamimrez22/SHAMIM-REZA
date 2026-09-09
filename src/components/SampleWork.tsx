@@ -23,7 +23,7 @@ export const SampleWork: React.FC = () => {
   return (
     <section
       id="work"
-      className={`relative py-24 section-transition border-t ${
+      className={`relative py-4 sm:py-6 section-transition border-t ${
         theme === 'dark'
           ? 'bg-[#0b1120] border-slate-800 text-slate-100'
           : theme === 'orange'
@@ -32,82 +32,23 @@ export const SampleWork: React.FC = () => {
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Section Header with Scroll Reveal */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <motion.div
-            initial={{ opacity: 0, y: -15 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-3 border ${
+        {/* Quick Admin Access */}
+        <div className="mb-4 flex items-center justify-end">
+          <Link
+            to="/admin"
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border transition-all ${
               theme === 'orange'
-                ? 'text-orange-400 bg-orange-500/10 border-orange-500/20'
-                : 'text-blue-600 dark:text-cyan-400 bg-blue-500/10 border-blue-500/20'
+                ? 'border-orange-500/40 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20'
+                : 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-cyan-300 hover:bg-blue-500/20'
             }`}
           >
-            DOCUMENTATION &amp; ARTIFACTS
-          </motion.div>
-
-          <motion.h2
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className={`text-3xl sm:text-5xl font-black tracking-tight ${
-              theme === 'dark' || theme === 'orange' ? 'text-white' : 'text-slate-950'
-            }`}
-          >
-            MY SAMPLE WORK
-          </motion.h2>
-
-          <motion.div
-            initial={{ scaleX: 0 }}
-            whileInView={{ scaleX: 1 }}
-            viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className={`w-20 h-1 mx-auto mt-4 rounded-full ${
-              theme === 'orange'
-                ? 'bg-gradient-to-r from-orange-500 to-amber-400'
-                : 'bg-gradient-to-r from-blue-500 to-cyan-400'
-            }`}
-          />
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.6, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className={`text-sm sm:text-base mt-4 max-w-2xl mx-auto leading-relaxed font-medium ${
-              theme === 'orange'
-                ? 'text-amber-200/80'
-                : theme === 'dark'
-                ? 'text-slate-300'
-                : 'text-slate-600'
-            }`}
-          >
-            Interactive demonstration samples of formatted spreadsheets, sanitization rules, 
-            and data structures. Click &quot;View Sample&quot; to inspect records directly.
-          </motion.p>
-
-          {/* Quick Admin Access */}
-          <div className="mt-5 flex items-center justify-center">
-            <Link
-              to="/admin"
-              className={`inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl border transition-all ${
-                theme === 'orange'
-                  ? 'border-orange-500/40 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20'
-                  : 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-cyan-300 hover:bg-blue-500/20'
-              }`}
-            >
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>+ Add / Manage Work Samples in Admin Panel</span>
-            </Link>
-          </div>
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>+ Add / Manage Work Samples in Admin</span>
+          </Link>
         </div>
 
         {/* Sample Project Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
           {sampleWorkProjects.map((project: SampleProject, index: number) => (
             <motion.div
               key={project.id}
@@ -120,7 +61,7 @@ export const SampleWork: React.FC = () => {
                 ease: [0.22, 1, 0.36, 1],
               }}
               whileHover={{ y: -6, transition: { duration: 0.2 } }}
-              className={`p-6 sm:p-7 rounded-2xl border transition-all duration-300 flex flex-col justify-between group relative overflow-hidden ${
+              className={`p-5 sm:p-6 rounded-2xl border transition-all duration-300 flex flex-col justify-between group relative overflow-hidden ${
                 theme === 'orange'
                   ? 'bg-[#181109]/95 border-orange-900/60 hover:border-orange-500/60 shadow-xl shadow-black/40'
                   : theme === 'dark'

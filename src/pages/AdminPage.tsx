@@ -748,7 +748,7 @@ export const AdminPage: React.FC = () => {
   }
 
   return (
-    <div className={`min-h-screen pt-24 pb-20 transition-colors duration-300 ${pageBgClass}`}>
+    <div className={`min-h-screen pt-16 sm:pt-20 pb-10 sm:pb-14 transition-colors duration-300 ${pageBgClass}`}>
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (
@@ -766,7 +766,7 @@ export const AdminPage: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Top Header / Control Bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-8 border-b border-slate-800/40">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 sm:pb-5 border-b border-slate-800/40">
           <div>
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">
               <Link to="/" className="hover:text-blue-500 flex items-center gap-1">

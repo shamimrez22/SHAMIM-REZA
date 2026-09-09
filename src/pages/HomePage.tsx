@@ -37,7 +37,7 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
 
       {/* 3. Featured Services Overview */}
       <section
-        className={`py-10 sm:py-12 section-transition border-t ${
+        className={`py-6 sm:py-8 section-transition border-t ${
           theme === 'dark'
             ? 'bg-[#0f172a] border-slate-800 text-slate-100'
             : theme === 'orange'
@@ -51,7 +51,7 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, amount: 0.2 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="flex flex-col md:flex-row md:items-end justify-between mb-6 sm:mb-7 gap-3"
+            className="flex flex-col md:flex-row md:items-end justify-between mb-4 sm:mb-5 gap-2"
           >
             <div>
               <div
@@ -193,7 +193,7 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
 
       {/* 4. Top Skills Snapshot */}
       <section
-        className={`py-10 sm:py-12 section-transition border-t ${
+        className={`py-6 sm:py-8 section-transition border-t ${
           theme === 'dark'
             ? 'bg-[#0b1120] border-slate-800 text-slate-100'
             : theme === 'orange'
@@ -207,7 +207,7 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, amount: 0.2 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="flex flex-col md:flex-row md:items-end justify-between mb-6 sm:mb-7 gap-3"
+            className="flex flex-col md:flex-row md:items-end justify-between mb-4 sm:mb-5 gap-2"
           >
             <div>
               <div
@@ -285,7 +285,7 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
 
       {/* 5. Sample Work Preview Banner */}
       <section
-        className={`py-10 sm:py-12 section-transition border-t ${
+        className={`py-6 sm:py-8 section-transition border-t ${
           theme === 'dark'
             ? 'bg-[#0f172a] border-slate-800 text-slate-100'
             : theme === 'orange'
@@ -299,7 +299,7 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, amount: 0.2 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="flex flex-col md:flex-row md:items-end justify-between mb-6 sm:mb-7 gap-3"
+            className="flex flex-col md:flex-row md:items-end justify-between mb-4 sm:mb-5 gap-2"
           >
             <div>
               <div
@@ -395,7 +395,7 @@ export const HomePage: React.FC<HomePageProps> = ({ personalInfo }) => {
 
       {/* 6. Quick Multi-Page Navigation Hub / CTA */}
       <section
-        className={`py-16 border-t ${
+        className={`py-8 sm:py-10 border-t ${
           theme === 'orange'
             ? 'bg-gradient-to-r from-[#1c120a] via-[#140d07] to-[#1e140b] border-orange-950 text-white'
             : theme === 'dark'
