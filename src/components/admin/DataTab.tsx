@@ -410,7 +410,7 @@ export const DataTab: React.FC<DataTabProps> = ({
       {uploadSuccess && (
         <div className="p-3.5 rounded-xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-200 flex items-center gap-3 text-xs sm:text-sm font-bold animate-fadeIn">
           <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-          <span>ডকুমেন্টটি সফলভাবে সংরক্ষিত হয়েছে! আপনি যে কোনো সময় এটি হুবহু ডাউনলোড করতে পারবেন।</span>
+          <span>☁️ ফাইলটি সফলভাবে ক্লাউডে লাইভ হয়েছে! এখন যে কোনো ডিভাইস (মোবাইল/কম্পিউটার) থেকে এটি সাথে সাথে লাইভ দেখা ও ডাউনলোড করা যাবে।</span>
         </div>
       )}
 

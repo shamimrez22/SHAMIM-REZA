@@ -26,6 +26,16 @@ import {
   normalizeSlots,
 } from '../utils/cloudSync';
 import {
+  saveCloudFile,
+  fetchCloudFile,
+  subscribeToCloudFile,
+  deleteCloudFile,
+  saveVaultDocumentToCloud,
+  subscribeToVaultDocumentsFromCloud,
+  deleteVaultDocumentFromCloud,
+  downloadAnyCloudFile,
+} from '../utils/cloudFileManager';
+import {
   personalInfo as initialPersonalInfo,
   statistics as initialStatistics,
   skills as initialSkills,
@@ -293,11 +303,11 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Real-time Global Cloud Synchronization via Firebase Firestore
   // Ensures ANY browser (mobile, new devices, incognito, HR recruiters) immediately receives
-  // the live executive profile photo and 5 photo presets even if local storage is blank.
+  // the live executive profile photo, 5 photo presets, uploaded CV, uploaded JD, and Data Vault files.
   useEffect(() => {
     let isMounted = true;
 
-    // Initial fetch from Firebase
+    // 1. Initial fetch & real-time listener for profile data & photos
     fetchGlobalProfileData().then((cloudData) => {
       if (!isMounted || !cloudData) return;
 
@@ -321,8 +331,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       });
     });
 
-    // Real-time listener: instantly catches updates from any device or admin tab
-    const unsubscribe = subscribeToGlobalProfileData((liveData) => {
+    const unsubProfile = subscribeToGlobalProfileData((liveData) => {
       if (!isMounted || !liveData) return;
       setState((prev) => {
         const photoChanged = prev.personalInfo.profilePhotoUrl !== liveData.profilePhotoUrl;
@@ -344,9 +353,103 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       });
     });
 
+    // 2. Real-time listener for Universal Cloud CV
+    const unsubCV = subscribeToCloudFile('cv_main', (cloudCV) => {
+      if (!isMounted) return;
+      if (cloudCV && cloudCV.fileData) {
+        setState((prev) => {
+          if (
+            prev.personalInfo.cvUrl === cloudCV.fileData &&
+            prev.personalInfo.cvFileName === cloudCV.fileName
+          ) {
+            return prev;
+          }
+          return {
+            ...prev,
+            personalInfo: {
+              ...prev.personalInfo,
+              cvUrl: cloudCV.fileData,
+              cvFileName: cloudCV.fileName,
+              cvFileSize: cloudCV.fileSize,
+              cvLastUpdated: cloudCV.uploadedAt || prev.personalInfo.cvLastUpdated,
+            },
+          };
+        });
+      } else if (cloudCV === null) {
+        // If removed from cloud by another device
+        setState((prev) => {
+          if (!prev.personalInfo.cvUrl) return prev;
+          return {
+            ...prev,
+            personalInfo: {
+              ...prev.personalInfo,
+              cvUrl: undefined,
+              cvFileName: undefined,
+              cvFileSize: undefined,
+              cvLastUpdated: undefined,
+            },
+          };
+        });
+      }
+    });
+
+    // 3. Real-time listener for Universal Cloud Job Description
+    const unsubJD = subscribeToCloudFile('jd_main', (cloudJD) => {
+      if (!isMounted) return;
+      if (cloudJD && cloudJD.fileData) {
+        setState((prev) => {
+          if (
+            prev.personalInfo.jdUrl === cloudJD.fileData &&
+            prev.personalInfo.jdFileName === cloudJD.fileName
+          ) {
+            return prev;
+          }
+          return {
+            ...prev,
+            personalInfo: {
+              ...prev.personalInfo,
+              jdUrl: cloudJD.fileData,
+              jdFileName: cloudJD.fileName,
+              jdFileSize: cloudJD.fileSize,
+              jdLastUpdated: cloudJD.uploadedAt || prev.personalInfo.jdLastUpdated,
+            },
+          };
+        });
+      } else if (cloudJD === null) {
+        // If removed from cloud
+        setState((prev) => {
+          if (!prev.personalInfo.jdUrl) return prev;
+          return {
+            ...prev,
+            personalInfo: {
+              ...prev.personalInfo,
+              jdUrl: undefined,
+              jdFileName: undefined,
+              jdFileSize: undefined,
+              jdLastUpdated: undefined,
+            },
+          };
+        });
+      }
+    });
+
+    // 4. Real-time listener for Data Vault documents
+    const unsubVault = subscribeToVaultDocumentsFromCloud((cloudDocs) => {
+      if (!isMounted) return;
+      if (Array.isArray(cloudDocs) && cloudDocs.length > 0) {
+        setState((prev) => ({
+          ...prev,
+          vaultDocuments: cloudDocs,
+        }));
+      }
+    });
+
     return () => {
       isMounted = false;
-      unsubscribe();
+      unsubProfile();
+      unsubCV();
+      unsubJD();
+      unsubVault();
     };
   }, []);
 
@@ -489,15 +592,30 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const uploadCV = (fileData: string, fileName: string, fileSize?: string) => {
+    const formattedDate = new Date().toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    const sizeStr = fileSize || 'Document File';
+
+    // Optimistic local state update for instant UI feedback
     updatePersonalInfo({
       cvUrl: fileData,
       cvFileName: fileName,
-      cvFileSize: fileSize || 'Document File',
-      cvLastUpdated: new Date().toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      }),
+      cvFileSize: sizeStr,
+      cvLastUpdated: formattedDate,
+    });
+
+    // Cloud Firebase persistence: ensures file is immediately live across all devices
+    saveCloudFile({
+      fileId: 'cv_main',
+      fileName,
+      fileSize: sizeStr,
+      fileType: 'cv',
+      fileData,
+      title: `${state.personalInfo.name} - Executive CV`,
+      category: 'Curriculum Vitae',
     });
   };
 
@@ -508,26 +626,33 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       cvFileSize: undefined,
       cvLastUpdated: undefined,
     });
+    deleteCloudFile('cv_main');
   };
 
-  const downloadCV = () => {
+  const downloadCV = async () => {
     if (state.personalInfo.cvUrl) {
       // User uploaded custom file - download exact uploaded file with exact extension
-      triggerFileDownload(
+      await downloadAnyCloudFile(
         state.personalInfo.cvUrl,
         state.personalInfo.cvFileName || `${state.personalInfo.name.replace(/\s+/g, '_')}_CV.pdf`
       );
     } else {
-      // Generate high-resolution executive vector A4 PDF
-      downloadCVAsDirectPDF(
-        state.personalInfo,
-        state.statistics,
-        state.skills,
-        state.experiences,
-        state.educations,
-        state.certifications,
-        state.personalInfo.cvTemplatePreference || 'Modern_Executive'
-      );
+      // Check if it exists in Firebase Cloud File storage first
+      const cloudCV = await fetchCloudFile('cv_main');
+      if (cloudCV && cloudCV.fileData) {
+        await downloadAnyCloudFile(cloudCV.fileData, cloudCV.fileName || 'CV.pdf');
+      } else {
+        // Generate high-resolution executive vector A4 PDF
+        downloadCVAsDirectPDF(
+          state.personalInfo,
+          state.statistics,
+          state.skills,
+          state.experiences,
+          state.educations,
+          state.certifications,
+          state.personalInfo.cvTemplatePreference || 'Modern_Executive'
+        );
+      }
     }
   };
 
@@ -546,15 +671,30 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const uploadJobDescription = (fileData: string, fileName: string, fileSize?: string) => {
+    const formattedDate = new Date().toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    const sizeStr = fileSize || 'Document File';
+
+    // Optimistic local state update
     updatePersonalInfo({
       jdUrl: fileData,
       jdFileName: fileName,
-      jdFileSize: fileSize || 'Document File',
-      jdLastUpdated: new Date().toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      }),
+      jdFileSize: sizeStr,
+      jdLastUpdated: formattedDate,
+    });
+
+    // Cloud Firebase persistence
+    saveCloudFile({
+      fileId: 'jd_main',
+      fileName,
+      fileSize: sizeStr,
+      fileType: 'job_description',
+      fileData,
+      title: `${state.personalInfo.name} - Job Description`,
+      category: 'Scope of Responsibilities',
     });
   };
 
@@ -565,22 +705,28 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       jdFileSize: undefined,
       jdLastUpdated: undefined,
     });
+    deleteCloudFile('jd_main');
   };
 
-  const downloadJobDescription = () => {
+  const downloadJobDescription = async () => {
     if (state.personalInfo.jdUrl) {
       // User uploaded custom file - download exact uploaded file with exact extension
-      triggerFileDownload(
+      await downloadAnyCloudFile(
         state.personalInfo.jdUrl,
         state.personalInfo.jdFileName || `${state.personalInfo.name.replace(/\s+/g, '_')}_Job_Description.pdf`
       );
     } else {
-      const jd = state.jobDescriptionData || initialJobDescriptionData;
-      downloadJobDescriptionAsDirectPDF(
-        jd,
-        state.personalInfo.name || 'Md. Shamim Reza',
-        'Executive_Report'
-      );
+      const cloudJD = await fetchCloudFile('jd_main');
+      if (cloudJD && cloudJD.fileData) {
+        await downloadAnyCloudFile(cloudJD.fileData, cloudJD.fileName || 'Job_Description.pdf');
+      } else {
+        const jd = state.jobDescriptionData || initialJobDescriptionData;
+        downloadJobDescriptionAsDirectPDF(
+          jd,
+          state.personalInfo.name || 'Md. Shamim Reza',
+          'Executive_Report'
+        );
+      }
     }
   };
 
@@ -599,6 +745,8 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         vaultDocuments: updatedDocs,
       };
     });
+    // Cloud Firebase persistence
+    saveVaultDocumentToCloud(doc);
   };
 
   const updateVaultDocument = (id: string, updated: Partial<VaultDocument>) => {
@@ -609,6 +757,10 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         localStorage.setItem('portfolio_vault_documents_v1', JSON.stringify(updatedDocs));
       } catch (e) {
         console.warn('LocalStorage quota warning for vault documents:', e);
+      }
+      const targetDoc = updatedDocs.find((d) => d.id === id);
+      if (targetDoc) {
+        saveVaultDocumentToCloud(targetDoc);
       }
       return {
         ...prev,
@@ -631,6 +783,8 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         vaultDocuments: updatedDocs,
       };
     });
+    // Cloud deletion
+    deleteVaultDocumentFromCloud(id);
   };
 
   const downloadVaultDocument = (docOrId: VaultDocument | string) => {
@@ -638,12 +792,13 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       ? (state.vaultDocuments || initialVaultDocuments).find((d) => d.id === docOrId)
       : docOrId;
 
-    if (!doc || !doc.fileData) {
+    if (doc) {
+      downloadAnyCloudFile(doc, doc.fileName || doc.title);
+    } else if (typeof docOrId === 'string') {
+      downloadAnyCloudFile(docOrId);
+    } else {
       console.warn('Document or file data not found for download');
-      return;
     }
-
-    triggerFileDownload(doc.fileData, doc.fileName || doc.title);
   };
 
   const openCVModal = () => setIsCVModalOpen(true);

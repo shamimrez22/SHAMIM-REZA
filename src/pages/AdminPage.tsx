@@ -564,7 +564,7 @@ export const AdminPage: React.FC = () => {
     reader.onload = () => {
       const result = reader.result as string;
       uploadCV(result, file.name, fileSizeStr);
-      showToast(`✅ CV "${file.name}" uploaded successfully!`);
+      showToast(`☁️ CV "${file.name}" ক্লাউডে লাইভ হয়েছে! যে কোনো ডিভাইস থেকে ডাউনলোড করা যাবে।`);
     };
     reader.readAsDataURL(file);
   };
@@ -583,7 +583,7 @@ export const AdminPage: React.FC = () => {
     reader.onload = () => {
       const result = reader.result as string;
       uploadJobDescription(result, file.name, fileSizeStr);
-      showToast(`✅ Job Description "${file.name}" uploaded successfully!`);
+      showToast(`☁️ Job Description "${file.name}" ক্লাউডে লাইভ হয়েছে! যে কোনো ডিভাইস থেকে ডাউনলোড করা যাবে।`);
     };
     reader.readAsDataURL(file);
   };
@@ -2156,9 +2156,12 @@ export const AdminPage: React.FC = () => {
                   <h4 className="text-base font-extrabold tracking-tight mb-1">
                     Click to browse or drag and drop your CV file here (Excel, Word, PDF)
                   </h4>
-                  <p className="text-xs text-slate-400 max-w-md mx-auto mb-4">
+                  <p className="text-xs text-slate-400 max-w-md mx-auto mb-3">
                     Supported formats: <strong>Excel (.xlsx, .xls, .csv)</strong>, <strong>Word (.docx, .doc)</strong>, <strong>PDF (.pdf)</strong>. Max recommended size: 8 MB.
                   </p>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold mb-4">
+                    <span>☁️ লাইভ ক্লাউড সিঙ্ক: মোবাইল বা পিসি থেকে আপলোড করলেই সব ডিভাইসে সাথে সাথে লাইভ হবে ও ডাউনলোড করা যাবে!</span>
+                  </div>
                   <span
                     className={`inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl ${primaryBtnClass}`}
                   >
@@ -2440,6 +2443,9 @@ export const AdminPage: React.FC = () => {
                   <p className="text-xs text-slate-400 max-w-md mx-auto mb-3">
                     Supported formats: <strong>Excel (.xlsx, .xls, .csv)</strong>, <strong>Word (.docx, .doc)</strong>, <strong>PDF (.pdf)</strong>. Max size: 8 MB.
                   </p>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px] font-bold mb-3">
+                    <span>☁️ লাইভ ক্লাউড সিঙ্ক: যে কোনো ডিভাইস থেকে আপলোড করলেই সাথে সাথে সব ডিভাইসে লাইভ হবে!</span>
+                  </div>
                   <span
                     className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl ${primaryBtnClass}`}
                   >

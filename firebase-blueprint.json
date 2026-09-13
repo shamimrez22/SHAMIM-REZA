@@ -2,7 +2,7 @@
   "entities": {
     "portfolioConfig": {
       "title": "Portfolio Configuration",
-      "description": "Configuration, 5 preset profile photos, and executive profile photo for Shamim Reza's portfolio",
+      "description": "Configuration, profile photo presets, CV & JD metadata, and executive portfolio settings for Shamim Reza",
       "type": "object",
       "properties": {
         "profilePhotoUrl": {
@@ -20,18 +20,218 @@
           },
           "description": "Array of 5 profile photo URLs or base64 data slots"
         },
+        "cvFileName": {
+          "type": "string",
+          "description": "Uploaded CV file name"
+        },
+        "cvFileSize": {
+          "type": "string",
+          "description": "Uploaded CV human-readable file size"
+        },
+        "cvLastUpdated": {
+          "type": "string",
+          "description": "Timestamp of CV upload"
+        },
+        "hasCustomCV": {
+          "type": "boolean",
+          "description": "Whether a custom CV file is active"
+        },
+        "jdFileName": {
+          "type": "string",
+          "description": "Uploaded Job Description file name"
+        },
+        "jdFileSize": {
+          "type": "string",
+          "description": "Uploaded Job Description human-readable file size"
+        },
+        "jdLastUpdated": {
+          "type": "string",
+          "description": "Timestamp of Job Description upload"
+        },
+        "hasCustomJD": {
+          "type": "boolean",
+          "description": "Whether a custom Job Description file is active"
+        },
         "updatedAt": {
           "type": "string",
           "description": "Timestamp of the last sync"
         }
       },
-      "required": ["profilePhotoUrl", "updatedAt"]
+      "required": ["updatedAt"]
+    },
+    "cloudFile": {
+      "title": "Cloud Uploaded File",
+      "description": "Uploaded CV, Job Description, or standalone document files synchronized across all devices",
+      "type": "object",
+      "properties": {
+        "fileId": {
+          "type": "string",
+          "description": "Unique identifier of the file"
+        },
+        "fileName": {
+          "type": "string",
+          "description": "File name with extension"
+        },
+        "fileSize": {
+          "type": "string",
+          "description": "Human-readable file size string"
+        },
+        "fileSizeBytes": {
+          "type": "number",
+          "description": "File size in bytes"
+        },
+        "fileType": {
+          "type": "string",
+          "description": "Type of file (cv, job_description, spreadsheet, report, pdf, image, other)"
+        },
+        "mimeType": {
+          "type": "string",
+          "description": "MIME type of uploaded file"
+        },
+        "fileData": {
+          "type": "string",
+          "description": "Base64 data URL string"
+        },
+        "isChunked": {
+          "type": "boolean",
+          "description": "Flag indicating file is stored across multiple chunks"
+        },
+        "totalChunks": {
+          "type": "number",
+          "description": "Total number of chunk documents"
+        },
+        "title": {
+          "type": "string",
+          "description": "Display title of the file"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category or department of the document"
+        },
+        "description": {
+          "type": "string",
+          "description": "Notes or summary of the file"
+        },
+        "uploadedAt": {
+          "type": "string",
+          "description": "Date string of initial upload"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update"
+        }
+      },
+      "required": ["fileId", "fileName", "updatedAt"]
+    },
+    "cloudFileChunk": {
+      "title": "Cloud File Chunk",
+      "description": "Sub-chunk of large uploaded file to stay well within Firestore 1MB document boundary",
+      "type": "object",
+      "properties": {
+        "chunkIndex": {
+          "type": "number",
+          "description": "Zero-based index of this chunk"
+        },
+        "data": {
+          "type": "string",
+          "description": "Chunk substring of the base64 file data"
+        }
+      },
+      "required": ["chunkIndex", "data"]
+    },
+    "vaultDocument": {
+      "title": "Vault Document",
+      "description": "Garments IE spreadsheets, production reports, SOPs and audit files in the Data Vault",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Document ID"
+        },
+        "title": {
+          "type": "string",
+          "description": "Document title"
+        },
+        "fileName": {
+          "type": "string",
+          "description": "Original file name"
+        },
+        "fileType": {
+          "type": "string",
+          "description": "Classified file type"
+        },
+        "fileExtension": {
+          "type": "string",
+          "description": "File extension (xlsx, docx, pdf, etc.)"
+        },
+        "fileSize": {
+          "type": "string",
+          "description": "Formatted file size string"
+        },
+        "fileSizeBytes": {
+          "type": "number",
+          "description": "File size in bytes"
+        },
+        "mimeType": {
+          "type": "string",
+          "description": "MIME type"
+        },
+        "fileData": {
+          "type": "string",
+          "description": "Base64 data URL string"
+        },
+        "isChunked": {
+          "type": "boolean",
+          "description": "Whether file is split into chunks"
+        },
+        "totalChunks": {
+          "type": "number",
+          "description": "Total chunk count"
+        },
+        "category": {
+          "type": "string",
+          "description": "Document category"
+        },
+        "description": {
+          "type": "string",
+          "description": "Document description"
+        },
+        "uploadDate": {
+          "type": "string",
+          "description": "Formatted upload date"
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Epoch timestamp in milliseconds"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update"
+        }
+      },
+      "required": ["id", "title", "fileName"]
     }
   },
   "firestore": {
     "/portfolio/{portfolioId}": {
       "schema": "portfolioConfig",
       "description": "Public portfolio profile and settings"
+    },
+    "/cloud_files/{fileId}": {
+      "schema": "cloudFile",
+      "description": "Cross-device synchronized files (CV, Job Description, uploads)"
+    },
+    "/cloud_files/{fileId}/chunks/{chunkId}": {
+      "schema": "cloudFileChunk",
+      "description": "Data chunks for files exceeding single document safe sizes"
+    },
+    "/vault_documents/{docId}": {
+      "schema": "vaultDocument",
+      "description": "Data Vault documents, production reports, and spreadsheets"
+    },
+    "/vault_documents/{docId}/chunks/{chunkId}": {
+      "schema": "cloudFileChunk",
+      "description": "Data chunks for vault documents"
     }
   }
 }

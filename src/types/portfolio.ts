@@ -195,5 +195,26 @@ export interface VaultDocument {
   description?: string;
   uploadDate: string;
   createdAt: number;
+  isChunked?: boolean;
+  totalChunks?: number;
+  isCloudSynced?: boolean;
 }
+
+export interface CloudFile {
+  fileId: string;
+  fileName: string;
+  fileSize: string;
+  fileSizeBytes?: number;
+  fileType: string;
+  mimeType?: string;
+  fileData?: string;
+  isChunked?: boolean;
+  totalChunks?: number;
+  title?: string;
+  category?: string;
+  description?: string;
+  uploadedAt: string;
+  updatedAt: string;
+}
+
 
