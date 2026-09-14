@@ -67,6 +67,12 @@ export async function saveCloudFile(
       minute: '2-digit',
     });
 
+    const detectedMime =
+      file.mimeType ||
+      (file.fileData.startsWith('data:')
+        ? file.fileData.match(/data:(.*?);/)?.[1] || 'application/octet-stream'
+        : 'application/octet-stream');
+
     if (dataLen > 600000) {
       // Chunked upload
       onProgress?.({ status: 'chunking', progress: 30, message: 'Optimizing high-resolution document in cloud...' });
@@ -84,7 +90,7 @@ export async function saveCloudFile(
           fileSize: file.fileSize,
           fileSizeBytes: file.fileSizeBytes || dataLen,
           fileType: file.fileType,
-          mimeType: file.mimeType || 'application/octet-stream',
+          mimeType: detectedMime,
           isChunked: true,
           totalChunks: chunks.length,
           title: file.title || file.fileName,
@@ -117,7 +123,7 @@ export async function saveCloudFile(
           fileSize: file.fileSize,
           fileSizeBytes: file.fileSizeBytes || dataLen,
           fileType: file.fileType,
-          mimeType: file.mimeType || 'application/octet-stream',
+          mimeType: detectedMime,
           fileData: file.fileData,
           isChunked: false,
           totalChunks: 1,
@@ -480,7 +486,8 @@ export async function deleteVaultDocumentFromCloud(id: string): Promise<boolean>
 
 /**
  * Universal file download dispatcher for any device
- * Resolves reassembly if chunked, and triggers high-fidelity browser download
+ * Resolves reassembly if chunked, and triggers high-fidelity browser download.
+ * Preserves the exact file name, extension, and unaltered raw byte content.
  */
 export async function downloadAnyCloudFile(
   docOrFile: VaultDocument | CloudFile | string,
@@ -490,20 +497,32 @@ export async function downloadAnyCloudFile(
   let fileName = fallbackFileName;
 
   if (typeof docOrFile === 'string') {
-    // Treat as ID: check cloud_files first, then vault_documents
-    const cloudFile = await fetchCloudFile(docOrFile);
-    if (cloudFile && cloudFile.fileData) {
-      fileData = cloudFile.fileData;
-      fileName = cloudFile.fileName || fallbackFileName;
+    if (
+      docOrFile.startsWith('data:') ||
+      docOrFile.startsWith('blob:') ||
+      docOrFile.startsWith('http://') ||
+      docOrFile.startsWith('https://') ||
+      docOrFile.length > 150
+    ) {
+      // It is already raw file content (data URL, blob URL, or long base64 string)
+      fileData = docOrFile;
+      fileName = fallbackFileName;
     } else {
-      const vaultDoc = await fetchVaultDocumentFromCloud(docOrFile);
-      if (vaultDoc && vaultDoc.fileData) {
-        fileData = vaultDoc.fileData;
-        fileName = vaultDoc.fileName || vaultDoc.title || fallbackFileName;
+      // Treat as document ID: check cloud_files first, then vault_documents
+      const cloudFile = await fetchCloudFile(docOrFile);
+      if (cloudFile && cloudFile.fileData) {
+        fileData = cloudFile.fileData;
+        fileName = cloudFile.fileName || fallbackFileName;
+      } else {
+        const vaultDoc = await fetchVaultDocumentFromCloud(docOrFile);
+        if (vaultDoc && vaultDoc.fileData) {
+          fileData = vaultDoc.fileData;
+          fileName = vaultDoc.fileName || vaultDoc.title || fallbackFileName;
+        }
       }
     }
   } else {
-    // If it's chunked and doesn't have complete fileData
+    // If it's chunked and doesn't have complete fileData in memory
     if (docOrFile.isChunked && !docOrFile.fileData) {
       const id = 'fileId' in docOrFile ? docOrFile.fileId : docOrFile.id;
       const full = 'fileId' in docOrFile ? await fetchCloudFile(id) : await fetchVaultDocumentFromCloud(id);
@@ -518,7 +537,7 @@ export async function downloadAnyCloudFile(
   }
 
   if (!fileData) {
-    console.warn('downloadAnyCloudFile: Unable to find valid file data');
+    console.warn('downloadAnyCloudFile: Unable to find valid file data for', fallbackFileName);
     return;
   }
 

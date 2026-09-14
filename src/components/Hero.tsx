@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Eye,
   Printer,
+  Loader2,
 } from 'lucide-react';
 import { PersonalInfo } from '../types/portfolio';
 import { useTheme } from '../context/ThemeContext';
@@ -27,10 +28,34 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
   const { openCVModal, openJDModal, downloadCV, downloadJobDescription } = usePortfolio();
   const [photoError, setPhotoError] = useState(false);
   const [fallbackToSvg, setFallbackToSvg] = useState(false);
+  const [isDownloadingCV, setIsDownloadingCV] = useState(false);
+  const [isDownloadingJD, setIsDownloadingJD] = useState(false);
+
+  const handleCVDownload = async () => {
+    try {
+      setIsDownloadingCV(true);
+      await downloadCV();
+    } catch (err) {
+      console.error('Error downloading CV:', err);
+    } finally {
+      setTimeout(() => setIsDownloadingCV(false), 1200);
+    }
+  };
+
+  const handleJDDownload = async () => {
+    try {
+      setIsDownloadingJD(true);
+      await downloadJobDescription();
+    } catch (err) {
+      console.error('Error downloading Job Description:', err);
+    } finally {
+      setTimeout(() => setIsDownloadingJD(false), 1200);
+    }
+  };
 
   const handleCVClick = () => {
     if (personalInfo.cvUrl) {
-      downloadCV();
+      handleCVDownload();
     } else {
       openCVModal();
     }
@@ -38,7 +63,7 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
 
   const handleJDClick = () => {
     if (personalInfo.jdUrl) {
-      downloadJobDescription();
+      handleJDDownload();
     } else {
       openJDModal();
     }
@@ -299,10 +324,11 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
               >
                 <button
                   type="button"
-                  onClick={downloadCV}
+                  onClick={handleCVDownload}
+                  disabled={isDownloadingCV}
                   id="hero-btn-download-cv"
-                  title="Direct Download CV (PDF)"
-                  className={`inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2.5 text-xs font-bold tracking-wider uppercase active:scale-[0.98] transition-all duration-200 whitespace-nowrap ${
+                  title={personalInfo.cvFileName ? `Direct Download: ${personalInfo.cvFileName}` : 'Direct Download Official CV'}
+                  className={`inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2.5 text-xs font-bold tracking-wider uppercase active:scale-[0.98] transition-all duration-200 whitespace-nowrap disabled:opacity-70 ${
                     theme === 'orange'
                       ? 'hover:bg-emerald-900/60 text-emerald-300'
                       : theme === 'dark'
@@ -310,8 +336,12 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
                       : 'hover:bg-emerald-100 text-emerald-800'
                   }`}
                 >
-                  <Download className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span>Download CV</span>
+                  {isDownloadingCV ? (
+                    <Loader2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  )}
+                  <span>{isDownloadingCV ? 'Downloading...' : 'Download CV'}</span>
                 </button>
                 <button
                   type="button"
@@ -359,10 +389,11 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
               >
                 <button
                   type="button"
-                  onClick={downloadJobDescription}
+                  onClick={handleJDDownload}
+                  disabled={isDownloadingJD}
                   id="hero-btn-job-description"
-                  title="Direct Download Job Description (PDF)"
-                  className={`inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2.5 text-xs font-bold tracking-wider uppercase active:scale-[0.98] transition-all duration-200 whitespace-nowrap ${
+                  title={personalInfo.jdFileName ? `Direct Download: ${personalInfo.jdFileName}` : 'Direct Download Job Description'}
+                  className={`inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2.5 text-xs font-bold tracking-wider uppercase active:scale-[0.98] transition-all duration-200 whitespace-nowrap disabled:opacity-70 ${
                     theme === 'orange'
                       ? 'hover:bg-amber-900/60 text-amber-300'
                       : theme === 'dark'
@@ -370,8 +401,12 @@ export const Hero: React.FC<HeroProps> = ({ personalInfo }) => {
                       : 'hover:bg-blue-100 text-blue-800'
                   }`}
                 >
-                  <Briefcase className={`w-3.5 h-3.5 shrink-0 ${theme === 'orange' ? 'text-amber-400' : 'text-cyan-400'}`} />
-                  <span>Job Description</span>
+                  {isDownloadingJD ? (
+                    <Loader2 className={`w-3.5 h-3.5 shrink-0 animate-spin ${theme === 'orange' ? 'text-amber-400' : 'text-cyan-400'}`} />
+                  ) : (
+                    <Briefcase className={`w-3.5 h-3.5 shrink-0 ${theme === 'orange' ? 'text-amber-400' : 'text-cyan-400'}`} />
+                  )}
+                  <span>{isDownloadingJD ? 'Downloading...' : 'Job Description'}</span>
                 </button>
                 <button
                   type="button"

@@ -249,3 +249,140 @@ export async function fetchAdminCredentialsFromCloud(): Promise<{ username: stri
   return null;
 }
 
+/**
+ * Unique Device Identifier to track origins and avoid echo feedback loops
+ */
+export function getDeviceId(): string {
+  try {
+    let id = localStorage.getItem('portfolio_device_id');
+    if (!id) {
+      id = 'dev_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now().toString(36);
+      localStorage.setItem('portfolio_device_id', id);
+    }
+    return id;
+  } catch {
+    return 'dev_default';
+  }
+}
+
+export const PORTFOLIO_CONTENT_DOC_ID = 'content';
+
+/**
+ * Universal Cross-Device Portfolio Content Synchronization
+ * Saves personal info, skills, tools, services, experiences, educations,
+ * certifications, statistics, work samples, and job description data to Firestore.
+ */
+export async function savePortfolioContentToCloud(content: {
+  personalInfo?: any;
+  jobDescriptionData?: any;
+  statistics?: any[];
+  skills?: any[];
+  tools?: any[];
+  services?: any[];
+  workProcessSteps?: any[];
+  whyChooseMeItems?: any[];
+  sampleWorkProjects?: any[];
+  experiences?: any[];
+  educations?: any[];
+  certifications?: any[];
+  testimonials?: any[];
+}): Promise<boolean> {
+  try {
+    const docRef = doc(db, 'portfolio', PORTFOLIO_CONTENT_DOC_ID);
+    const nowIso = new Date().toISOString();
+    const deviceId = getDeviceId();
+
+    // Clean personalInfo: avoid duplicating huge base64 data since CV/JD files
+    // are stored safely in cloud_files/cv_main and cloud_files/jd_main
+    const cleanPersonalInfo = { ...(content.personalInfo || {}) };
+    if (typeof cleanPersonalInfo.cvUrl === 'string' && cleanPersonalInfo.cvUrl.length > 50000) {
+      delete cleanPersonalInfo.cvUrl;
+    }
+    if (typeof cleanPersonalInfo.jdUrl === 'string' && cleanPersonalInfo.jdUrl.length > 50000) {
+      delete cleanPersonalInfo.jdUrl;
+    }
+
+    const payload = {
+      personalInfo: cleanPersonalInfo,
+      jobDescriptionData: content.jobDescriptionData || null,
+      statistics: content.statistics || [],
+      skills: content.skills || [],
+      tools: content.tools || [],
+      services: content.services || [],
+      workProcessSteps: content.workProcessSteps || [],
+      whyChooseMeItems: content.whyChooseMeItems || [],
+      sampleWorkProjects: content.sampleWorkProjects || [],
+      experiences: content.experiences || [],
+      educations: content.educations || [],
+      certifications: content.certifications || [],
+      testimonials: content.testimonials || [],
+      updatedAt: nowIso,
+      updatedByDeviceId: deviceId,
+    };
+
+    // Strip any undefined keys
+    const sanitized = JSON.parse(JSON.stringify(payload));
+
+    await setDoc(docRef, sanitized, { merge: true });
+
+    try {
+      localStorage.setItem('portfolio_cloud_last_saved', nowIso);
+    } catch {
+      // ignore
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Failed to save portfolio content to Firebase Firestore:', err);
+    return false;
+  }
+}
+
+/**
+ * Fetches the master portfolio content from Firebase Firestore
+ */
+export async function fetchPortfolioContentFromCloud(): Promise<any | null> {
+  try {
+    const docRef = doc(db, 'portfolio', PORTFOLIO_CONTENT_DOC_ID);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data();
+    }
+    return null;
+  } catch (err) {
+    console.warn('Failed to fetch portfolio content from cloud:', err);
+    return null;
+  }
+}
+
+/**
+ * Real-time listener for portfolio content changes from ANY device.
+ * Notifies the callback whenever any edit is made in Firestore.
+ */
+export function subscribeToPortfolioContent(
+  callback: (data: any, isFromOtherDevice: boolean) => void
+): () => void {
+  try {
+    const docRef = doc(db, 'portfolio', PORTFOLIO_CONTENT_DOC_ID);
+    const myDeviceId = getDeviceId();
+
+    const unsubscribe = onSnapshot(
+      docRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const isFromOtherDevice = data?.updatedByDeviceId !== myDeviceId;
+          callback(data, isFromOtherDevice);
+        }
+      },
+      (err) => {
+        console.warn('Portfolio content onSnapshot error:', err);
+      }
+    );
+    return unsubscribe;
+  } catch (err) {
+    console.warn('Failed to initialize portfolio content listener:', err);
+    return () => {};
+  }
+}
+

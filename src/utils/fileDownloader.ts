@@ -1,7 +1,9 @@
 import { VaultFileType } from '../types/portfolio';
 
 /**
- * Downloads a file with its exact original filename and content
+ * Downloads a file with its exact original filename, extension, and 100% unaltered byte-for-byte binary content.
+ * Converts Data URLs directly into native binary Blobs to guarantee reliable downloads across all devices,
+ * browsers, and sandboxed iframes.
  */
 export async function triggerFileDownload(fileData: string, fileName: string): Promise<void> {
   if (!fileData) {
@@ -10,37 +12,72 @@ export async function triggerFileDownload(fileData: string, fileName: string): P
   }
 
   try {
-    // If it's a data URL or blob URL
-    if (fileData.startsWith('data:') || fileData.startsWith('blob:')) {
-      const link = document.createElement('a');
-      link.href = fileData;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      return;
+    let blob: Blob;
+
+    if (fileData.startsWith('data:')) {
+      // Decode Base64 Data URL to pristine binary Uint8Array
+      const parts = fileData.split(',');
+      const mimeMatch = parts[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+      const b64 = parts[1] || '';
+      const byteCharacters = atob(b64);
+      const byteNumbers = new Uint8Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      blob = new Blob([byteNumbers], { type: mime });
+    } else if (fileData.startsWith('blob:')) {
+      const res = await fetch(fileData);
+      blob = await res.blob();
+    } else if (fileData.startsWith('http://') || fileData.startsWith('https://')) {
+      const res = await fetch(fileData);
+      blob = await res.blob();
+    } else {
+      // Plain base64 without prefix or text
+      try {
+        const byteCharacters = atob(fileData);
+        const byteNumbers = new Uint8Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        blob = new Blob([byteNumbers], { type: 'application/octet-stream' });
+      } catch {
+        blob = new Blob([fileData], { type: 'text/plain;charset=utf-8' });
+      }
     }
 
-    // If it's an HTTP/HTTPS URL, fetch as blob so the browser strictly uses fileName
-    const res = await fetch(fileData);
-    const blob = await res.blob();
     const objectUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
+    link.style.display = 'none';
     link.href = objectUrl;
     link.download = fileName;
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+
+    setTimeout(() => {
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
+      URL.revokeObjectURL(objectUrl);
+    }, 2500);
   } catch (err) {
-    console.warn('Direct blob fetch failed, falling back to basic link download', err);
-    const link = document.createElement('a');
-    link.href = fileData;
-    link.download = fileName;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    console.warn('Blob conversion failed, attempting direct link fallback:', err);
+    try {
+      const link = document.createElement('a');
+      link.style.display = 'none';
+      link.href = fileData;
+      link.download = fileName;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        if (document.body.contains(link)) {
+          document.body.removeChild(link);
+        }
+      }, 2500);
+    } catch (fallbackErr) {
+      console.error('All download mechanisms failed:', fallbackErr);
+    }
   }
 }
 

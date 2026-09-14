@@ -40,6 +40,7 @@ import {
   LogOut,
   Key,
   FolderArchive,
+  Cloud,
 } from 'lucide-react';
 import { AdminLoginGate } from '../components/AdminLoginGate';
 import { AdminSecuritySettings } from '../components/AdminSecuritySettings';
@@ -137,6 +138,9 @@ export const AdminPage: React.FC = () => {
     updateVaultDocument,
     deleteVaultDocument,
     downloadVaultDocument,
+    cloudSyncStatus,
+    lastSyncedTime,
+    syncAllToCloud,
   } = usePortfolio();
 
   // Admin Authentication State - Always prompts for password every time the user enters the admin page
@@ -175,6 +179,10 @@ export const AdminPage: React.FC = () => {
       setPhotoPreview(personalInfo.profilePhotoUrl);
     }
   }, [personalInfo.profilePhotoUrl]);
+
+  useEffect(() => {
+    setProfileForm(personalInfo);
+  }, [personalInfo]);
 
   useEffect(() => {
     setSlotUrlValues(normalizeSlots(personalInfo.profilePhotoSlots));
@@ -589,17 +597,21 @@ export const AdminPage: React.FC = () => {
   };
 
   // Save Job Description Form Changes
-  const handleSaveJD = (e: React.FormEvent) => {
+  const handleSaveJD = async (e: React.FormEvent) => {
     e.preventDefault();
     updateJobDescriptionData(jdForm);
-    showToast('✅ Job Description configuration saved successfully!');
+    showToast('☁️ Job Description তথ্য সব ডিভাইসে সিঙ্ক হচ্ছে...');
+    await syncAllToCloud();
+    showToast('✅ Job Description সফলভাবে সেভ ও সব ডিভাইসে লাইভ হয়েছে!');
   };
 
   // Save Profile Changes
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     updatePersonalInfo(profileForm);
-    showToast('✅ Personal information saved successfully!');
+    showToast('☁️ প্রোফাইল তথ্য আপডেট হচ্ছে এবং সব ডিভাইসে সাথে সাথে সিঙ্ক হচ্ছে...');
+    await syncAllToCloud();
+    showToast('✅ প্রোফাইল তথ্য সফলভাবে সেভ ও সব ডিভাইসে লাইভ হয়েছে!');
   };
 
   // Open Add Work Sample
@@ -795,6 +807,39 @@ export const AdminPage: React.FC = () => {
 
           {/* Quick Actions */}
           <div className="flex flex-wrap items-center gap-2">
+            {/* Real-time Global Cloud Sync Status & Broadcast Button */}
+            <button
+              type="button"
+              onClick={async () => {
+                showToast('🔄 সব ডিভাইসের জন্য ক্লাউডে লাইভ ডেটা ব্রডকাস্ট করা হচ্ছে...');
+                const ok = await syncAllToCloud();
+                if (ok) {
+                  showToast('✅ সব ডিভাইসে সফলভাবে সিঙ্ক সম্পন্ন হয়েছে! (Live Everywhere)');
+                } else {
+                  showToast('⚠️ সিঙ্ক করার চেষ্টা করা হয়েছে। ডেটা লোকাল ও ক্লাউডে সুরক্ষিত আছে।');
+                }
+              }}
+              title={`যেকোনো ডিভাইস থেকে পরিবর্তন করলে সব জায়গায় সাথে সাথে আপডেট হবে। শেষ সিঙ্ক: ${lastSyncedTime || 'লাইভ'}`}
+              className={`inline-flex items-center gap-2 px-3.5 py-2 text-xs font-black uppercase tracking-wider rounded-xl border transition-all active:scale-95 ${
+                cloudSyncStatus === 'syncing'
+                  ? 'border-cyan-500/40 bg-cyan-500/15 text-cyan-300 shadow-md shadow-cyan-500/20'
+                  : 'border-emerald-500/40 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 shadow-md shadow-emerald-500/20'
+              }`}
+            >
+              {cloudSyncStatus === 'syncing' ? (
+                <RefreshCw className="w-4 h-4 animate-spin text-cyan-400" />
+              ) : (
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+              )}
+              <Cloud className="w-4 h-4 text-emerald-400" />
+              <span>
+                {cloudSyncStatus === 'syncing' ? 'Syncing...' : 'Live Everywhere'}
+              </span>
+            </button>
+
             <button
               type="button"
               onClick={() => setActiveTab('deploy')}

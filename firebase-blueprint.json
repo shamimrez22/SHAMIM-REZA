@@ -59,6 +59,74 @@
       },
       "required": ["updatedAt"]
     },
+    "portfolioContent": {
+      "title": "Portfolio Master Content",
+      "description": "Universal cross-device synchronization payload for personal info, skills, tools, services, experiences, educations, certifications, and job description data",
+      "type": "object",
+      "properties": {
+        "personalInfo": {
+          "type": "object",
+          "description": "Core executive profile information"
+        },
+        "jobDescriptionData": {
+          "type": "object",
+          "description": "Full Garments IE job description details and daily tasks"
+        },
+        "statistics": {
+          "type": "array",
+          "description": "Key industrial engineering benchmark statistics"
+        },
+        "skills": {
+          "type": "array",
+          "description": "Core technical, software, and operational skills"
+        },
+        "tools": {
+          "type": "array",
+          "description": "Garments IE tools and technologies"
+        },
+        "services": {
+          "type": "array",
+          "description": "Offered executive services and solutions"
+        },
+        "workProcessSteps": {
+          "type": "array",
+          "description": "Work methodology process steps"
+        },
+        "whyChooseMeItems": {
+          "type": "array",
+          "description": "Executive value propositions and highlights"
+        },
+        "sampleWorkProjects": {
+          "type": "array",
+          "description": "Production and IE sample projects"
+        },
+        "experiences": {
+          "type": "array",
+          "description": "Work history and factory experience entries"
+        },
+        "educations": {
+          "type": "array",
+          "description": "Academic degrees and education details"
+        },
+        "certifications": {
+          "type": "array",
+          "description": "Professional certifications and achievements"
+        },
+        "testimonials": {
+          "type": "array",
+          "description": "Recommendations and client testimonials"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update"
+        },
+        "updatedByDeviceId": {
+          "type": "string",
+          "description": "Originating device identifier"
+        }
+      },
+      "required": ["personalInfo", "updatedAt"]
+    },
     "cloudFile": {
       "title": "Cloud Uploaded File",
       "description": "Uploaded CV, Job Description, or standalone document files synchronized across all devices",

@@ -24,6 +24,9 @@ import {
   saveGlobalProfileData,
   subscribeToGlobalProfileData,
   normalizeSlots,
+  savePortfolioContentToCloud,
+  fetchPortfolioContentFromCloud,
+  subscribeToPortfolioContent,
 } from '../utils/cloudSync';
 import {
   saveCloudFile,
@@ -132,6 +135,21 @@ interface PortfolioContextType {
   addExperience: (exp: ExperienceItem) => void;
   updateExperience: (id: string, updated: ExperienceItem) => void;
   deleteExperience: (id: string) => void;
+
+  // Education
+  addEducation: (edu: EducationItem) => void;
+  updateEducation: (id: string, updated: EducationItem) => void;
+  deleteEducation: (id: string) => void;
+
+  // Certifications
+  addCertification: (cert: CertificationItem) => void;
+  updateCertification: (id: string, updated: CertificationItem) => void;
+  deleteCertification: (id: string) => void;
+
+  // Real-Time Universal Cloud Sync
+  cloudSyncStatus: 'synced' | 'syncing' | 'error' | 'idle';
+  lastSyncedTime: string;
+  syncAllToCloud: () => Promise<boolean>;
 
   // Global actions
   resetToDefaults: () => void;
@@ -285,6 +303,12 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   });
 
+  // Real-Time Global Cloud Synchronization State
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<'synced' | 'syncing' | 'error' | 'idle'>('idle');
+  const [lastSyncedTime, setLastSyncedTime] = useState<string>('');
+  const isIncomingCloudSyncRef = React.useRef(false);
+  const lastSavedStateJsonRef = React.useRef<string>('');
+
   // Sync to localStorage on change
   useEffect(() => {
     try {
@@ -306,6 +330,112 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // the live executive profile photo, 5 photo presets, uploaded CV, uploaded JD, and Data Vault files.
   useEffect(() => {
     let isMounted = true;
+
+    // 0. Universal Master Portfolio Content (Personal Info, Skills, Experiences, Educations, Certs, etc.)
+    fetchPortfolioContentFromCloud().then((cloudContent) => {
+      if (!isMounted) return;
+      if (cloudContent && cloudContent.personalInfo) {
+        isIncomingCloudSyncRef.current = true;
+        setState((prev) => {
+          const mergedPersonalInfo = {
+            ...prev.personalInfo,
+            ...(cloudContent.personalInfo || {}),
+            // Preserve local active CV and JD URLs if already populated from cloud files
+            cvUrl: prev.personalInfo.cvUrl || cloudContent.personalInfo?.cvUrl,
+            cvFileName: prev.personalInfo.cvFileName || cloudContent.personalInfo?.cvFileName,
+            cvFileSize: prev.personalInfo.cvFileSize || cloudContent.personalInfo?.cvFileSize,
+            cvLastUpdated: prev.personalInfo.cvLastUpdated || cloudContent.personalInfo?.cvLastUpdated,
+            jdUrl: prev.personalInfo.jdUrl || cloudContent.personalInfo?.jdUrl,
+            jdFileName: prev.personalInfo.jdFileName || cloudContent.personalInfo?.jdFileName,
+            jdFileSize: prev.personalInfo.jdFileSize || cloudContent.personalInfo?.jdFileSize,
+            jdLastUpdated: prev.personalInfo.jdLastUpdated || cloudContent.personalInfo?.jdLastUpdated,
+            profilePhotoUrl: cloudContent.personalInfo?.profilePhotoUrl || prev.personalInfo.profilePhotoUrl,
+            profilePhotoSlots: cloudContent.personalInfo?.profilePhotoSlots || prev.personalInfo.profilePhotoSlots,
+            activePhotoSlot: typeof cloudContent.personalInfo?.activePhotoSlot === 'number'
+              ? cloudContent.personalInfo.activePhotoSlot
+              : prev.personalInfo.activePhotoSlot,
+          };
+
+          return {
+            ...prev,
+            personalInfo: mergedPersonalInfo,
+            jobDescriptionData: cloudContent.jobDescriptionData ? {
+              ...(prev.jobDescriptionData || initialJobDescriptionData),
+              ...cloudContent.jobDescriptionData,
+            } : prev.jobDescriptionData,
+            statistics: Array.isArray(cloudContent.statistics) && cloudContent.statistics.length > 0 ? cloudContent.statistics : prev.statistics,
+            skills: Array.isArray(cloudContent.skills) && cloudContent.skills.length > 0 ? cloudContent.skills : prev.skills,
+            tools: Array.isArray(cloudContent.tools) && cloudContent.tools.length > 0 ? cloudContent.tools : prev.tools,
+            services: Array.isArray(cloudContent.services) && cloudContent.services.length > 0 ? cloudContent.services : prev.services,
+            workProcessSteps: Array.isArray(cloudContent.workProcessSteps) && cloudContent.workProcessSteps.length > 0 ? cloudContent.workProcessSteps : prev.workProcessSteps,
+            whyChooseMeItems: Array.isArray(cloudContent.whyChooseMeItems) && cloudContent.whyChooseMeItems.length > 0 ? cloudContent.whyChooseMeItems : prev.whyChooseMeItems,
+            sampleWorkProjects: Array.isArray(cloudContent.sampleWorkProjects) && cloudContent.sampleWorkProjects.length > 0 ? cloudContent.sampleWorkProjects : prev.sampleWorkProjects,
+            experiences: Array.isArray(cloudContent.experiences) && cloudContent.experiences.length > 0 ? cloudContent.experiences : prev.experiences,
+            educations: Array.isArray(cloudContent.educations) && cloudContent.educations.length > 0 ? cloudContent.educations : prev.educations,
+            certifications: Array.isArray(cloudContent.certifications) && cloudContent.certifications.length > 0 ? cloudContent.certifications : prev.certifications,
+            testimonials: Array.isArray(cloudContent.testimonials) && cloudContent.testimonials.length > 0 ? cloudContent.testimonials : prev.testimonials,
+          };
+        });
+        setCloudSyncStatus('synced');
+        setLastSyncedTime(new Date().toLocaleTimeString());
+      } else {
+        // Seed Firestore if fresh
+        savePortfolioContentToCloud(defaultState).then(() => {
+          setCloudSyncStatus('synced');
+          setLastSyncedTime(new Date().toLocaleTimeString());
+        });
+      }
+    });
+
+    // Real-Time Listener for Content Changes from other devices
+    const unsubContent = subscribeToPortfolioContent((cloudContent, isFromOtherDevice) => {
+      if (!isMounted || !cloudContent) return;
+      if (isFromOtherDevice) {
+        isIncomingCloudSyncRef.current = true;
+        setState((prev) => {
+          return {
+            ...prev,
+            personalInfo: {
+              ...prev.personalInfo,
+              ...(cloudContent.personalInfo || {}),
+              cvUrl: prev.personalInfo.cvUrl || cloudContent.personalInfo?.cvUrl,
+              cvFileName: prev.personalInfo.cvFileName || cloudContent.personalInfo?.cvFileName,
+              cvFileSize: prev.personalInfo.cvFileSize || cloudContent.personalInfo?.cvFileSize,
+              cvLastUpdated: prev.personalInfo.cvLastUpdated || cloudContent.personalInfo?.cvLastUpdated,
+              jdUrl: prev.personalInfo.jdUrl || cloudContent.personalInfo?.jdUrl,
+              jdFileName: prev.personalInfo.jdFileName || cloudContent.personalInfo?.jdFileName,
+              jdFileSize: prev.personalInfo.jdFileSize || cloudContent.personalInfo?.jdFileSize,
+              jdLastUpdated: prev.personalInfo.jdLastUpdated || cloudContent.personalInfo?.jdLastUpdated,
+              profilePhotoUrl: cloudContent.personalInfo?.profilePhotoUrl || prev.personalInfo.profilePhotoUrl,
+              profilePhotoSlots: cloudContent.personalInfo?.profilePhotoSlots || prev.personalInfo.profilePhotoSlots,
+              activePhotoSlot: typeof cloudContent.personalInfo?.activePhotoSlot === 'number'
+                ? cloudContent.personalInfo.activePhotoSlot
+                : prev.personalInfo.activePhotoSlot,
+            },
+            jobDescriptionData: cloudContent.jobDescriptionData ? {
+              ...(prev.jobDescriptionData || initialJobDescriptionData),
+              ...cloudContent.jobDescriptionData,
+            } : prev.jobDescriptionData,
+            statistics: Array.isArray(cloudContent.statistics) && cloudContent.statistics.length > 0 ? cloudContent.statistics : prev.statistics,
+            skills: Array.isArray(cloudContent.skills) && cloudContent.skills.length > 0 ? cloudContent.skills : prev.skills,
+            tools: Array.isArray(cloudContent.tools) && cloudContent.tools.length > 0 ? cloudContent.tools : prev.tools,
+            services: Array.isArray(cloudContent.services) && cloudContent.services.length > 0 ? cloudContent.services : prev.services,
+            workProcessSteps: Array.isArray(cloudContent.workProcessSteps) && cloudContent.workProcessSteps.length > 0 ? cloudContent.workProcessSteps : prev.workProcessSteps,
+            whyChooseMeItems: Array.isArray(cloudContent.whyChooseMeItems) && cloudContent.whyChooseMeItems.length > 0 ? cloudContent.whyChooseMeItems : prev.whyChooseMeItems,
+            sampleWorkProjects: Array.isArray(cloudContent.sampleWorkProjects) && cloudContent.sampleWorkProjects.length > 0 ? cloudContent.sampleWorkProjects : prev.sampleWorkProjects,
+            experiences: Array.isArray(cloudContent.experiences) && cloudContent.experiences.length > 0 ? cloudContent.experiences : prev.experiences,
+            educations: Array.isArray(cloudContent.educations) && cloudContent.educations.length > 0 ? cloudContent.educations : prev.educations,
+            certifications: Array.isArray(cloudContent.certifications) && cloudContent.certifications.length > 0 ? cloudContent.certifications : prev.certifications,
+            testimonials: Array.isArray(cloudContent.testimonials) && cloudContent.testimonials.length > 0 ? cloudContent.testimonials : prev.testimonials,
+          };
+        });
+        setCloudSyncStatus('synced');
+        setLastSyncedTime(new Date().toLocaleTimeString());
+      } else {
+        setCloudSyncStatus('synced');
+        setLastSyncedTime(new Date().toLocaleTimeString());
+      }
+    });
 
     // 1. Initial fetch & real-time listener for profile data & photos
     fetchGlobalProfileData().then((cloudData) => {
@@ -446,12 +576,101 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     return () => {
       isMounted = false;
+      unsubContent();
       unsubProfile();
       unsubCV();
       unsubJD();
       unsubVault();
     };
   }, []);
+
+  // Universal Auto-Save to Firebase Cloud with Debounce (700ms)
+  // Ensures ANY edit (text, number, skill, job description, experience, stats)
+  // is immediately stored in Firestore and broadcasts live to all devices!
+  useEffect(() => {
+    if (isIncomingCloudSyncRef.current) {
+      isIncomingCloudSyncRef.current = false;
+      return;
+    }
+
+    const payloadToCompare = {
+      personalInfo: state.personalInfo,
+      jobDescriptionData: state.jobDescriptionData,
+      statistics: state.statistics,
+      skills: state.skills,
+      tools: state.tools,
+      services: state.services,
+      workProcessSteps: state.workProcessSteps,
+      whyChooseMeItems: state.whyChooseMeItems,
+      sampleWorkProjects: state.sampleWorkProjects,
+      experiences: state.experiences,
+      educations: state.educations,
+      certifications: state.certifications,
+      testimonials: state.testimonials,
+    };
+
+    const jsonStr = JSON.stringify(payloadToCompare);
+    if (jsonStr === lastSavedStateJsonRef.current) {
+      return;
+    }
+
+    setCloudSyncStatus('syncing');
+    const timer = setTimeout(async () => {
+      lastSavedStateJsonRef.current = jsonStr;
+      const ok = await savePortfolioContentToCloud(payloadToCompare);
+      if (ok) {
+        setCloudSyncStatus('synced');
+        setLastSyncedTime(new Date().toLocaleTimeString());
+      } else {
+        setCloudSyncStatus('error');
+      }
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [
+    state.personalInfo,
+    state.jobDescriptionData,
+    state.statistics,
+    state.skills,
+    state.tools,
+    state.services,
+    state.workProcessSteps,
+    state.whyChooseMeItems,
+    state.sampleWorkProjects,
+    state.experiences,
+    state.educations,
+    state.certifications,
+    state.testimonials,
+  ]);
+
+  // Instant explicit manual sync trigger
+  const syncAllToCloud = async (): Promise<boolean> => {
+    setCloudSyncStatus('syncing');
+    const payload = {
+      personalInfo: state.personalInfo,
+      jobDescriptionData: state.jobDescriptionData,
+      statistics: state.statistics,
+      skills: state.skills,
+      tools: state.tools,
+      services: state.services,
+      workProcessSteps: state.workProcessSteps,
+      whyChooseMeItems: state.whyChooseMeItems,
+      sampleWorkProjects: state.sampleWorkProjects,
+      experiences: state.experiences,
+      educations: state.educations,
+      certifications: state.certifications,
+      testimonials: state.testimonials,
+    };
+    lastSavedStateJsonRef.current = JSON.stringify(payload);
+    const ok = await savePortfolioContentToCloud(payload);
+    if (ok) {
+      setCloudSyncStatus('synced');
+      setLastSyncedTime(new Date().toLocaleTimeString());
+    } else {
+      setCloudSyncStatus('error');
+    }
+    return ok;
+  };
 
   const updatePersonalInfo = (info: Partial<PersonalInfo>) => {
     setState((prev) => ({
@@ -630,29 +849,50 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const downloadCV = async () => {
-    if (state.personalInfo.cvUrl) {
-      // User uploaded custom file - download exact uploaded file with exact extension
-      await downloadAnyCloudFile(
-        state.personalInfo.cvUrl,
-        state.personalInfo.cvFileName || `${state.personalInfo.name.replace(/\s+/g, '_')}_CV.pdf`
-      );
-    } else {
+    try {
+      if (state.personalInfo.cvUrl) {
+        // User uploaded custom file - download exact uploaded file with exact extension and raw bytes
+        await triggerFileDownload(
+          state.personalInfo.cvUrl,
+          state.personalInfo.cvFileName || `${state.personalInfo.name.replace(/\s+/g, '_')}_CV.pdf`
+        );
+        return;
+      }
+
       // Check if it exists in Firebase Cloud File storage first
       const cloudCV = await fetchCloudFile('cv_main');
       if (cloudCV && cloudCV.fileData) {
-        await downloadAnyCloudFile(cloudCV.fileData, cloudCV.fileName || 'CV.pdf');
-      } else {
-        // Generate high-resolution executive vector A4 PDF
-        downloadCVAsDirectPDF(
-          state.personalInfo,
-          state.statistics,
-          state.skills,
-          state.experiences,
-          state.educations,
-          state.certifications,
-          state.personalInfo.cvTemplatePreference || 'Modern_Executive'
-        );
+        // Update local state cache for instant subsequent clicks
+        updatePersonalInfo({
+          cvUrl: cloudCV.fileData,
+          cvFileName: cloudCV.fileName,
+          cvFileSize: cloudCV.fileSize,
+        });
+        await triggerFileDownload(cloudCV.fileData, cloudCV.fileName || 'CV.pdf');
+        return;
       }
+
+      // Fallback: Generate high-resolution executive vector A4 PDF
+      downloadCVAsDirectPDF(
+        state.personalInfo,
+        state.statistics,
+        state.skills,
+        state.experiences,
+        state.educations,
+        state.certifications,
+        state.personalInfo.cvTemplatePreference || 'Modern_Executive'
+      );
+    } catch (err) {
+      console.error('downloadCV failed, falling back to direct PDF:', err);
+      downloadCVAsDirectPDF(
+        state.personalInfo,
+        state.statistics,
+        state.skills,
+        state.experiences,
+        state.educations,
+        state.certifications,
+        'Modern_Executive'
+      );
     }
   };
 
@@ -709,24 +949,42 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const downloadJobDescription = async () => {
-    if (state.personalInfo.jdUrl) {
-      // User uploaded custom file - download exact uploaded file with exact extension
-      await downloadAnyCloudFile(
-        state.personalInfo.jdUrl,
-        state.personalInfo.jdFileName || `${state.personalInfo.name.replace(/\s+/g, '_')}_Job_Description.pdf`
-      );
-    } else {
+    try {
+      if (state.personalInfo.jdUrl) {
+        // User uploaded custom file - download exact uploaded file with exact extension and raw bytes
+        await triggerFileDownload(
+          state.personalInfo.jdUrl,
+          state.personalInfo.jdFileName || `${state.personalInfo.name.replace(/\s+/g, '_')}_Job_Description.pdf`
+        );
+        return;
+      }
+
       const cloudJD = await fetchCloudFile('jd_main');
       if (cloudJD && cloudJD.fileData) {
-        await downloadAnyCloudFile(cloudJD.fileData, cloudJD.fileName || 'Job_Description.pdf');
-      } else {
-        const jd = state.jobDescriptionData || initialJobDescriptionData;
-        downloadJobDescriptionAsDirectPDF(
-          jd,
-          state.personalInfo.name || 'Md. Shamim Reza',
-          'Executive_Report'
-        );
+        // Update local state cache for instant subsequent clicks
+        updatePersonalInfo({
+          jdUrl: cloudJD.fileData,
+          jdFileName: cloudJD.fileName,
+          jdFileSize: cloudJD.fileSize,
+        });
+        await triggerFileDownload(cloudJD.fileData, cloudJD.fileName || 'Job_Description.pdf');
+        return;
       }
+
+      const jd = state.jobDescriptionData || initialJobDescriptionData;
+      downloadJobDescriptionAsDirectPDF(
+        jd,
+        state.personalInfo.name || 'Md. Shamim Reza',
+        'Executive_Report'
+      );
+    } catch (err) {
+      console.error('downloadJobDescription failed, falling back to direct PDF:', err);
+      const jd = state.jobDescriptionData || initialJobDescriptionData;
+      downloadJobDescriptionAsDirectPDF(
+        jd,
+        state.personalInfo.name || 'Md. Shamim Reza',
+        'Executive_Report'
+      );
     }
   };
 
@@ -880,11 +1138,56 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }));
   };
 
+  // Education Actions
+  const addEducation = (edu: EducationItem) => {
+    setState((prev) => ({
+      ...prev,
+      educations: [edu, ...prev.educations],
+    }));
+  };
+
+  const updateEducation = (id: string, updated: EducationItem) => {
+    setState((prev) => ({
+      ...prev,
+      educations: prev.educations.map((e) => (e.id === id ? updated : e)),
+    }));
+  };
+
+  const deleteEducation = (id: string) => {
+    setState((prev) => ({
+      ...prev,
+      educations: prev.educations.filter((e) => e.id !== id),
+    }));
+  };
+
+  // Certification Actions
+  const addCertification = (cert: CertificationItem) => {
+    setState((prev) => ({
+      ...prev,
+      certifications: [cert, ...prev.certifications],
+    }));
+  };
+
+  const updateCertification = (id: string, updated: CertificationItem) => {
+    setState((prev) => ({
+      ...prev,
+      certifications: prev.certifications.map((c) => (c.id === id ? updated : c)),
+    }));
+  };
+
+  const deleteCertification = (id: string) => {
+    setState((prev) => ({
+      ...prev,
+      certifications: prev.certifications.filter((c) => c.id !== id),
+    }));
+  };
+
   // Global Actions
   const resetToDefaults = () => {
     setState(defaultState);
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem('portfolio_user_info');
+    savePortfolioContentToCloud(defaultState);
   };
 
   const exportBackup = () => {
@@ -903,10 +1206,12 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (!parsed.personalInfo || !parsed.personalInfo.name) {
         throw new Error('Invalid portfolio backup format: missing personalInfo');
       }
-      setState({
+      const nextState = {
         ...defaultState,
         ...parsed,
-      });
+      };
+      setState(nextState);
+      savePortfolioContentToCloud(nextState);
       return true;
     } catch (err) {
       console.error('Import failed', err);
@@ -973,6 +1278,18 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         addExperience,
         updateExperience,
         deleteExperience,
+
+        addEducation,
+        updateEducation,
+        deleteEducation,
+
+        addCertification,
+        updateCertification,
+        deleteCertification,
+
+        cloudSyncStatus,
+        lastSyncedTime,
+        syncAllToCloud,
 
         resetToDefaults,
         exportBackup,
