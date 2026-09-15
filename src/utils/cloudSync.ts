@@ -6,6 +6,7 @@
 
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { safeSetLocalStorage } from './safeStorage';
 
 const PORTFOLIO_DOC_ID = 'main';
 
@@ -51,11 +52,14 @@ export async function fetchGlobalProfileData(): Promise<GlobalProfileData | null
       // If active slot has image but profilePhotoUrl is empty, sync it
       const resolvedPhotoUrl = profilePhotoUrl || photoSlots[activePhotoSlot] || '/profile-photo.jpg';
 
-      // Cache locally
+      // Cache locally with quota safety
       try {
-        if (resolvedPhotoUrl) localStorage.setItem('portfolio_profile_photo', resolvedPhotoUrl);
-        localStorage.setItem('portfolio_photo_slots', JSON.stringify(photoSlots));
-        localStorage.setItem('portfolio_active_photo_slot', String(activePhotoSlot));
+        if (resolvedPhotoUrl && resolvedPhotoUrl.length < 40000) {
+          safeSetLocalStorage('portfolio_profile_photo', resolvedPhotoUrl);
+        }
+        const safeSlots = photoSlots.map((s) => (s && s.length > 40000 ? '' : s));
+        safeSetLocalStorage('portfolio_photo_slots', JSON.stringify(safeSlots));
+        safeSetLocalStorage('portfolio_active_photo_slot', String(activePhotoSlot));
       } catch {
         // ignore storage error
       }
@@ -117,11 +121,14 @@ export async function saveGlobalProfileData(payload: {
       { merge: true }
     );
 
-    // Save locally
+    // Save locally with quota safety
     try {
-      localStorage.setItem('portfolio_profile_photo', cleanUrl);
-      localStorage.setItem('portfolio_photo_slots', JSON.stringify(slots));
-      localStorage.setItem('portfolio_active_photo_slot', String(activeSlot));
+      if (cleanUrl && cleanUrl.length < 40000) {
+        safeSetLocalStorage('portfolio_profile_photo', cleanUrl);
+      }
+      const safeSlots = slots.map((s) => (s && s.length > 40000 ? '' : s));
+      safeSetLocalStorage('portfolio_photo_slots', JSON.stringify(safeSlots));
+      safeSetLocalStorage('portfolio_active_photo_slot', String(activeSlot));
     } catch {
       // ignore
     }
@@ -130,9 +137,12 @@ export async function saveGlobalProfileData(payload: {
   } catch (err) {
     console.error('Failed to sync photo slots to Firebase Firestore:', err);
     try {
-      localStorage.setItem('portfolio_profile_photo', cleanUrl);
-      localStorage.setItem('portfolio_photo_slots', JSON.stringify(slots));
-      localStorage.setItem('portfolio_active_photo_slot', String(activeSlot));
+      if (cleanUrl && cleanUrl.length < 40000) {
+        safeSetLocalStorage('portfolio_profile_photo', cleanUrl);
+      }
+      const safeSlots = slots.map((s) => (s && s.length > 40000 ? '' : s));
+      safeSetLocalStorage('portfolio_photo_slots', JSON.stringify(safeSlots));
+      safeSetLocalStorage('portfolio_active_photo_slot', String(activeSlot));
     } catch {
       // ignore
     }
@@ -268,6 +278,56 @@ export function getDeviceId(): string {
 export const PORTFOLIO_CONTENT_DOC_ID = 'content';
 
 /**
+ * Recursively converts nested arrays into Firestore-compatible objects
+ * (since Firestore strictly throws an error if any array contains another array).
+ */
+export function sanitizeForFirestore(data: any): any {
+  if (data === null || data === undefined) return data;
+  if (Array.isArray(data)) {
+    return data.map((item) => {
+      if (Array.isArray(item)) {
+        return { _rowValues: sanitizeForFirestore(item) };
+      }
+      return sanitizeForFirestore(item);
+    });
+  }
+  if (typeof data === 'object') {
+    const res: Record<string, any> = {};
+    for (const key of Object.keys(data)) {
+      res[key] = sanitizeForFirestore(data[key]);
+    }
+    return res;
+  }
+  return data;
+}
+
+/**
+ * Reverses sanitizeForFirestore so the application receives standard nested arrays.
+ */
+export function restoreFromFirestore(data: any): any {
+  if (data === null || data === undefined) return data;
+  if (Array.isArray(data)) {
+    return data.map((item) => {
+      if (item && typeof item === 'object' && Array.isArray(item._rowValues)) {
+        return restoreFromFirestore(item._rowValues);
+      }
+      return restoreFromFirestore(item);
+    });
+  }
+  if (typeof data === 'object') {
+    if (Array.isArray(data._rowValues)) {
+      return restoreFromFirestore(data._rowValues);
+    }
+    const res: Record<string, any> = {};
+    for (const key of Object.keys(data)) {
+      res[key] = restoreFromFirestore(data[key]);
+    }
+    return res;
+  }
+  return data;
+}
+
+/**
  * Universal Cross-Device Portfolio Content Synchronization
  * Saves personal info, skills, tools, services, experiences, educations,
  * certifications, statistics, work samples, and job description data to Firestore.
@@ -320,8 +380,8 @@ export async function savePortfolioContentToCloud(content: {
       updatedByDeviceId: deviceId,
     };
 
-    // Strip any undefined keys
-    const sanitized = JSON.parse(JSON.stringify(payload));
+    // Strip any undefined keys and recursively sanitize nested arrays
+    const sanitized = sanitizeForFirestore(JSON.parse(JSON.stringify(payload)));
 
     await setDoc(docRef, sanitized, { merge: true });
 
@@ -346,7 +406,7 @@ export async function fetchPortfolioContentFromCloud(): Promise<any | null> {
     const docRef = doc(db, 'portfolio', PORTFOLIO_CONTENT_DOC_ID);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return docSnap.data();
+      return restoreFromFirestore(docSnap.data());
     }
     return null;
   } catch (err) {
@@ -360,19 +420,18 @@ export async function fetchPortfolioContentFromCloud(): Promise<any | null> {
  * Notifies the callback whenever any edit is made in Firestore.
  */
 export function subscribeToPortfolioContent(
-  callback: (data: any, isFromOtherDevice: boolean) => void
+  callback: (data: any) => void
 ): () => void {
   try {
     const docRef = doc(db, 'portfolio', PORTFOLIO_CONTENT_DOC_ID);
-    const myDeviceId = getDeviceId();
 
     const unsubscribe = onSnapshot(
       docRef,
       (docSnap) => {
         if (docSnap.exists()) {
-          const data = docSnap.data();
-          const isFromOtherDevice = data?.updatedByDeviceId !== myDeviceId;
-          callback(data, isFromOtherDevice);
+          const rawData = docSnap.data();
+          const restored = restoreFromFirestore(rawData);
+          callback(restored);
         }
       },
       (err) => {

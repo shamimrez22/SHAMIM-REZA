@@ -601,7 +601,7 @@ export const AdminPage: React.FC = () => {
     e.preventDefault();
     updateJobDescriptionData(jdForm);
     showToast('☁️ Job Description তথ্য সব ডিভাইসে সিঙ্ক হচ্ছে...');
-    await syncAllToCloud();
+    await syncAllToCloud({ jobDescriptionData: jdForm });
     showToast('✅ Job Description সফলভাবে সেভ ও সব ডিভাইসে লাইভ হয়েছে!');
   };
 
@@ -610,7 +610,7 @@ export const AdminPage: React.FC = () => {
     e.preventDefault();
     updatePersonalInfo(profileForm);
     showToast('☁️ প্রোফাইল তথ্য আপডেট হচ্ছে এবং সব ডিভাইসে সাথে সাথে সিঙ্ক হচ্ছে...');
-    await syncAllToCloud();
+    await syncAllToCloud({ personalInfo: profileForm });
     showToast('✅ প্রোফাইল তথ্য সফলভাবে সেভ ও সব ডিভাইসে লাইভ হয়েছে!');
   };
 

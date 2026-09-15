@@ -39,6 +39,16 @@ import {
   downloadAnyCloudFile,
 } from '../utils/cloudFileManager';
 import {
+  sanitizeStateForLocalStorage,
+  safeSetLocalStorage,
+  persistHeavyFilesToIndexedDB,
+  restoreHeavyFilesFromIndexedDB,
+  purgeOversizedLegacyLocalStorage,
+  removeHeavyCVFromIndexedDB,
+  removeHeavyJDFromIndexedDB,
+  removeHeavyVaultDocFromIndexedDB,
+} from '../utils/safeStorage';
+import {
   personalInfo as initialPersonalInfo,
   statistics as initialStatistics,
   skills as initialSkills,
@@ -149,7 +159,7 @@ interface PortfolioContextType {
   // Real-Time Universal Cloud Sync
   cloudSyncStatus: 'synced' | 'syncing' | 'error' | 'idle';
   lastSyncedTime: string;
-  syncAllToCloud: () => Promise<boolean>;
+  syncAllToCloud: (overrideState?: Partial<PortfolioFullState>) => Promise<boolean>;
 
   // Global actions
   resetToDefaults: () => void;
@@ -309,14 +319,17 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const isIncomingCloudSyncRef = React.useRef(false);
   const lastSavedStateJsonRef = React.useRef<string>('');
 
-  // Sync to localStorage on change
+  // Sync to localStorage and IndexedDB on change (Quota-Safe)
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      // Also sync legacy key for backward compatibility
-      localStorage.setItem('portfolio_user_info', JSON.stringify(state.personalInfo));
+      // 1. Sanitize state so heavy binary base64 strings (CV, JD, Vault files) are stripped from localStorage
+      const sanitized = sanitizeStateForLocalStorage(state);
+      safeSetLocalStorage(STORAGE_KEY, JSON.stringify(sanitized));
+
+      // 2. Persist heavy binary files to IndexedDB asynchronously (no 5MB quota limit)
+      persistHeavyFilesToIndexedDB(state);
     } catch (e) {
-      console.error('Failed to save portfolio state to localStorage', e);
+      console.warn('LocalStorage save handled with quota fallback:', e);
     }
   }, [state]);
 
@@ -331,10 +344,42 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     let isMounted = true;
 
+    // Purge any bloated legacy keys from previous sessions that threaten the 5MB quota
+    purgeOversizedLegacyLocalStorage();
+
+    // Asynchronously restore heavy files (CV, JD, Vault files) from IndexedDB
+    restoreHeavyFilesFromIndexedDB(state).then((patches) => {
+      if (!isMounted || !patches) return;
+      setState((prev) => ({
+        ...prev,
+        ...patches,
+        personalInfo: {
+          ...prev.personalInfo,
+          ...(patches.personalInfo || {}),
+        },
+      }));
+    });
+
     // 0. Universal Master Portfolio Content (Personal Info, Skills, Experiences, Educations, Certs, etc.)
     fetchPortfolioContentFromCloud().then((cloudContent) => {
       if (!isMounted) return;
       if (cloudContent && cloudContent.personalInfo) {
+        const cloudPayload = {
+          personalInfo: cloudContent.personalInfo,
+          jobDescriptionData: cloudContent.jobDescriptionData,
+          statistics: cloudContent.statistics,
+          skills: cloudContent.skills,
+          tools: cloudContent.tools,
+          services: cloudContent.services,
+          workProcessSteps: cloudContent.workProcessSteps,
+          whyChooseMeItems: cloudContent.whyChooseMeItems,
+          sampleWorkProjects: cloudContent.sampleWorkProjects,
+          experiences: cloudContent.experiences,
+          educations: cloudContent.educations,
+          certifications: cloudContent.certifications,
+          testimonials: cloudContent.testimonials,
+        };
+        lastSavedStateJsonRef.current = JSON.stringify(cloudPayload);
         isIncomingCloudSyncRef.current = true;
         setState((prev) => {
           const mergedPersonalInfo = {
@@ -356,7 +401,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               : prev.personalInfo.activePhotoSlot,
           };
 
-          return {
+          const newState = {
             ...prev,
             personalInfo: mergedPersonalInfo,
             jobDescriptionData: cloudContent.jobDescriptionData ? {
@@ -375,66 +420,97 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             certifications: Array.isArray(cloudContent.certifications) && cloudContent.certifications.length > 0 ? cloudContent.certifications : prev.certifications,
             testimonials: Array.isArray(cloudContent.testimonials) && cloudContent.testimonials.length > 0 ? cloudContent.testimonials : prev.testimonials,
           };
+          try {
+            safeSetLocalStorage(STORAGE_KEY, JSON.stringify(sanitizeStateForLocalStorage(newState)));
+          } catch {
+            // ignore
+          }
+          return newState;
         });
         setCloudSyncStatus('synced');
         setLastSyncedTime(new Date().toLocaleTimeString());
-      } else {
-        // Seed Firestore if fresh
-        savePortfolioContentToCloud(defaultState).then(() => {
-          setCloudSyncStatus('synced');
-          setLastSyncedTime(new Date().toLocaleTimeString());
-        });
       }
     });
 
-    // Real-Time Listener for Content Changes from other devices
-    const unsubContent = subscribeToPortfolioContent((cloudContent, isFromOtherDevice) => {
-      if (!isMounted || !cloudContent) return;
-      if (isFromOtherDevice) {
-        isIncomingCloudSyncRef.current = true;
-        setState((prev) => {
-          return {
-            ...prev,
-            personalInfo: {
-              ...prev.personalInfo,
-              ...(cloudContent.personalInfo || {}),
-              cvUrl: prev.personalInfo.cvUrl || cloudContent.personalInfo?.cvUrl,
-              cvFileName: prev.personalInfo.cvFileName || cloudContent.personalInfo?.cvFileName,
-              cvFileSize: prev.personalInfo.cvFileSize || cloudContent.personalInfo?.cvFileSize,
-              cvLastUpdated: prev.personalInfo.cvLastUpdated || cloudContent.personalInfo?.cvLastUpdated,
-              jdUrl: prev.personalInfo.jdUrl || cloudContent.personalInfo?.jdUrl,
-              jdFileName: prev.personalInfo.jdFileName || cloudContent.personalInfo?.jdFileName,
-              jdFileSize: prev.personalInfo.jdFileSize || cloudContent.personalInfo?.jdFileSize,
-              jdLastUpdated: prev.personalInfo.jdLastUpdated || cloudContent.personalInfo?.jdLastUpdated,
-              profilePhotoUrl: cloudContent.personalInfo?.profilePhotoUrl || prev.personalInfo.profilePhotoUrl,
-              profilePhotoSlots: cloudContent.personalInfo?.profilePhotoSlots || prev.personalInfo.profilePhotoSlots,
-              activePhotoSlot: typeof cloudContent.personalInfo?.activePhotoSlot === 'number'
-                ? cloudContent.personalInfo.activePhotoSlot
-                : prev.personalInfo.activePhotoSlot,
-            },
-            jobDescriptionData: cloudContent.jobDescriptionData ? {
-              ...(prev.jobDescriptionData || initialJobDescriptionData),
-              ...cloudContent.jobDescriptionData,
-            } : prev.jobDescriptionData,
-            statistics: Array.isArray(cloudContent.statistics) && cloudContent.statistics.length > 0 ? cloudContent.statistics : prev.statistics,
-            skills: Array.isArray(cloudContent.skills) && cloudContent.skills.length > 0 ? cloudContent.skills : prev.skills,
-            tools: Array.isArray(cloudContent.tools) && cloudContent.tools.length > 0 ? cloudContent.tools : prev.tools,
-            services: Array.isArray(cloudContent.services) && cloudContent.services.length > 0 ? cloudContent.services : prev.services,
-            workProcessSteps: Array.isArray(cloudContent.workProcessSteps) && cloudContent.workProcessSteps.length > 0 ? cloudContent.workProcessSteps : prev.workProcessSteps,
-            whyChooseMeItems: Array.isArray(cloudContent.whyChooseMeItems) && cloudContent.whyChooseMeItems.length > 0 ? cloudContent.whyChooseMeItems : prev.whyChooseMeItems,
-            sampleWorkProjects: Array.isArray(cloudContent.sampleWorkProjects) && cloudContent.sampleWorkProjects.length > 0 ? cloudContent.sampleWorkProjects : prev.sampleWorkProjects,
-            experiences: Array.isArray(cloudContent.experiences) && cloudContent.experiences.length > 0 ? cloudContent.experiences : prev.experiences,
-            educations: Array.isArray(cloudContent.educations) && cloudContent.educations.length > 0 ? cloudContent.educations : prev.educations,
-            certifications: Array.isArray(cloudContent.certifications) && cloudContent.certifications.length > 0 ? cloudContent.certifications : prev.certifications,
-            testimonials: Array.isArray(cloudContent.testimonials) && cloudContent.testimonials.length > 0 ? cloudContent.testimonials : prev.testimonials,
-          };
-        });
+    // Real-Time Listener for Content Changes from Firestore (broadcast to all devices & tabs)
+    const unsubContent = subscribeToPortfolioContent((cloudContent) => {
+      if (!isMounted || !cloudContent || !cloudContent.personalInfo) return;
+
+      const cloudPayload = {
+        personalInfo: cloudContent.personalInfo,
+        jobDescriptionData: cloudContent.jobDescriptionData,
+        statistics: cloudContent.statistics,
+        skills: cloudContent.skills,
+        tools: cloudContent.tools,
+        services: cloudContent.services,
+        workProcessSteps: cloudContent.workProcessSteps,
+        whyChooseMeItems: cloudContent.whyChooseMeItems,
+        sampleWorkProjects: cloudContent.sampleWorkProjects,
+        experiences: cloudContent.experiences,
+        educations: cloudContent.educations,
+        certifications: cloudContent.certifications,
+        testimonials: cloudContent.testimonials,
+      };
+
+      const incomingJson = JSON.stringify(cloudPayload);
+      if (incomingJson === lastSavedStateJsonRef.current) {
+        // Echo of our own local save, already up to date
         setCloudSyncStatus('synced');
-        setLastSyncedTime(new Date().toLocaleTimeString());
-      } else {
-        setCloudSyncStatus('synced');
-        setLastSyncedTime(new Date().toLocaleTimeString());
+        return;
       }
+
+      lastSavedStateJsonRef.current = incomingJson;
+      isIncomingCloudSyncRef.current = true;
+
+      setState((prev) => {
+        const mergedPersonalInfo = {
+          ...prev.personalInfo,
+          ...(cloudContent.personalInfo || {}),
+          cvUrl: prev.personalInfo.cvUrl || cloudContent.personalInfo?.cvUrl,
+          cvFileName: prev.personalInfo.cvFileName || cloudContent.personalInfo?.cvFileName,
+          cvFileSize: prev.personalInfo.cvFileSize || cloudContent.personalInfo?.cvFileSize,
+          cvLastUpdated: prev.personalInfo.cvLastUpdated || cloudContent.personalInfo?.cvLastUpdated,
+          jdUrl: prev.personalInfo.jdUrl || cloudContent.personalInfo?.jdUrl,
+          jdFileName: prev.personalInfo.jdFileName || cloudContent.personalInfo?.jdFileName,
+          jdFileSize: prev.personalInfo.jdFileSize || cloudContent.personalInfo?.jdFileSize,
+          jdLastUpdated: prev.personalInfo.jdLastUpdated || cloudContent.personalInfo?.jdLastUpdated,
+          profilePhotoUrl: cloudContent.personalInfo?.profilePhotoUrl || prev.personalInfo.profilePhotoUrl,
+          profilePhotoSlots: cloudContent.personalInfo?.profilePhotoSlots || prev.personalInfo.profilePhotoSlots,
+          activePhotoSlot: typeof cloudContent.personalInfo?.activePhotoSlot === 'number'
+            ? cloudContent.personalInfo.activePhotoSlot
+            : prev.personalInfo.activePhotoSlot,
+        };
+
+        const newState = {
+          ...prev,
+          personalInfo: mergedPersonalInfo,
+          jobDescriptionData: cloudContent.jobDescriptionData ? {
+            ...(prev.jobDescriptionData || initialJobDescriptionData),
+            ...cloudContent.jobDescriptionData,
+          } : prev.jobDescriptionData,
+          statistics: Array.isArray(cloudContent.statistics) && cloudContent.statistics.length > 0 ? cloudContent.statistics : prev.statistics,
+          skills: Array.isArray(cloudContent.skills) && cloudContent.skills.length > 0 ? cloudContent.skills : prev.skills,
+          tools: Array.isArray(cloudContent.tools) && cloudContent.tools.length > 0 ? cloudContent.tools : prev.tools,
+          services: Array.isArray(cloudContent.services) && cloudContent.services.length > 0 ? cloudContent.services : prev.services,
+          workProcessSteps: Array.isArray(cloudContent.workProcessSteps) && cloudContent.workProcessSteps.length > 0 ? cloudContent.workProcessSteps : prev.workProcessSteps,
+          whyChooseMeItems: Array.isArray(cloudContent.whyChooseMeItems) && cloudContent.whyChooseMeItems.length > 0 ? cloudContent.whyChooseMeItems : prev.whyChooseMeItems,
+          sampleWorkProjects: Array.isArray(cloudContent.sampleWorkProjects) && cloudContent.sampleWorkProjects.length > 0 ? cloudContent.sampleWorkProjects : prev.sampleWorkProjects,
+          experiences: Array.isArray(cloudContent.experiences) && cloudContent.experiences.length > 0 ? cloudContent.experiences : prev.experiences,
+          educations: Array.isArray(cloudContent.educations) && cloudContent.educations.length > 0 ? cloudContent.educations : prev.educations,
+          certifications: Array.isArray(cloudContent.certifications) && cloudContent.certifications.length > 0 ? cloudContent.certifications : prev.certifications,
+          testimonials: Array.isArray(cloudContent.testimonials) && cloudContent.testimonials.length > 0 ? cloudContent.testimonials : prev.testimonials,
+        };
+
+        try {
+          safeSetLocalStorage(STORAGE_KEY, JSON.stringify(sanitizeStateForLocalStorage(newState)));
+        } catch {
+          // ignore
+        }
+        return newState;
+      });
+
+      setCloudSyncStatus('synced');
+      setLastSyncedTime(new Date().toLocaleTimeString());
     });
 
     // 1. Initial fetch & real-time listener for profile data & photos
@@ -644,22 +720,26 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   ]);
 
   // Instant explicit manual sync trigger
-  const syncAllToCloud = async (): Promise<boolean> => {
+  const syncAllToCloud = async (overrideState?: Partial<PortfolioFullState>): Promise<boolean> => {
     setCloudSyncStatus('syncing');
+    const targetPersonalInfo = overrideState?.personalInfo
+      ? { ...state.personalInfo, ...overrideState.personalInfo }
+      : state.personalInfo;
+
     const payload = {
-      personalInfo: state.personalInfo,
-      jobDescriptionData: state.jobDescriptionData,
-      statistics: state.statistics,
-      skills: state.skills,
-      tools: state.tools,
-      services: state.services,
-      workProcessSteps: state.workProcessSteps,
-      whyChooseMeItems: state.whyChooseMeItems,
-      sampleWorkProjects: state.sampleWorkProjects,
-      experiences: state.experiences,
-      educations: state.educations,
-      certifications: state.certifications,
-      testimonials: state.testimonials,
+      personalInfo: targetPersonalInfo,
+      jobDescriptionData: overrideState?.jobDescriptionData || state.jobDescriptionData,
+      statistics: overrideState?.statistics || state.statistics,
+      skills: overrideState?.skills || state.skills,
+      tools: overrideState?.tools || state.tools,
+      services: overrideState?.services || state.services,
+      workProcessSteps: overrideState?.workProcessSteps || state.workProcessSteps,
+      whyChooseMeItems: overrideState?.whyChooseMeItems || state.whyChooseMeItems,
+      sampleWorkProjects: overrideState?.sampleWorkProjects || state.sampleWorkProjects,
+      experiences: overrideState?.experiences || state.experiences,
+      educations: overrideState?.educations || state.educations,
+      certifications: overrideState?.certifications || state.certifications,
+      testimonials: overrideState?.testimonials || state.testimonials,
     };
     lastSavedStateJsonRef.current = JSON.stringify(payload);
     const ok = await savePortfolioContentToCloud(payload);
@@ -846,6 +926,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       cvLastUpdated: undefined,
     });
     deleteCloudFile('cv_main');
+    removeHeavyCVFromIndexedDB();
   };
 
   const downloadCV = async () => {
@@ -946,6 +1027,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       jdLastUpdated: undefined,
     });
     deleteCloudFile('jd_main');
+    removeHeavyJDFromIndexedDB();
   };
 
   const downloadJobDescription = async () => {
@@ -993,11 +1075,8 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setState((prev) => {
       const existing = prev.vaultDocuments || initialVaultDocuments;
       const updatedDocs = [doc, ...existing];
-      try {
-        localStorage.setItem('portfolio_vault_documents_v1', JSON.stringify(updatedDocs));
-      } catch (e) {
-        console.warn('LocalStorage quota warning for vault documents:', e);
-      }
+      const sanitizedDocs = updatedDocs.map(({ fileData, ...meta }) => ({ ...meta, fileData: '' }));
+      safeSetLocalStorage('portfolio_vault_documents_v1', JSON.stringify(sanitizedDocs));
       return {
         ...prev,
         vaultDocuments: updatedDocs,
@@ -1005,20 +1084,24 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
     // Cloud Firebase persistence
     saveVaultDocumentToCloud(doc);
+    // IndexedDB persistence for offline/fast load
+    if (doc.fileData) {
+      persistHeavyFilesToIndexedDB({ ...state, vaultDocuments: [doc] });
+    }
   };
 
   const updateVaultDocument = (id: string, updated: Partial<VaultDocument>) => {
     setState((prev) => {
       const existing = prev.vaultDocuments || initialVaultDocuments;
       const updatedDocs = existing.map((d) => (d.id === id ? { ...d, ...updated } : d));
-      try {
-        localStorage.setItem('portfolio_vault_documents_v1', JSON.stringify(updatedDocs));
-      } catch (e) {
-        console.warn('LocalStorage quota warning for vault documents:', e);
-      }
+      const sanitizedDocs = updatedDocs.map(({ fileData, ...meta }) => ({ ...meta, fileData: '' }));
+      safeSetLocalStorage('portfolio_vault_documents_v1', JSON.stringify(sanitizedDocs));
       const targetDoc = updatedDocs.find((d) => d.id === id);
       if (targetDoc) {
         saveVaultDocumentToCloud(targetDoc);
+        if (targetDoc.fileData) {
+          persistHeavyFilesToIndexedDB({ ...state, vaultDocuments: [targetDoc] });
+        }
       }
       return {
         ...prev,
@@ -1031,11 +1114,8 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setState((prev) => {
       const existing = prev.vaultDocuments || initialVaultDocuments;
       const updatedDocs = existing.filter((d) => d.id !== id);
-      try {
-        localStorage.setItem('portfolio_vault_documents_v1', JSON.stringify(updatedDocs));
-      } catch (e) {
-        console.warn('LocalStorage quota warning for vault documents:', e);
-      }
+      const sanitizedDocs = updatedDocs.map(({ fileData, ...meta }) => ({ ...meta, fileData: '' }));
+      safeSetLocalStorage('portfolio_vault_documents_v1', JSON.stringify(sanitizedDocs));
       return {
         ...prev,
         vaultDocuments: updatedDocs,
@@ -1043,6 +1123,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
     // Cloud deletion
     deleteVaultDocumentFromCloud(id);
+    removeHeavyVaultDocFromIndexedDB(id);
   };
 
   const downloadVaultDocument = (docOrId: VaultDocument | string) => {
@@ -1187,6 +1268,11 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setState(defaultState);
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem('portfolio_user_info');
+    localStorage.removeItem('portfolio_vault_documents_v1');
+    localStorage.removeItem('portfolio_profile_photo');
+    localStorage.removeItem('portfolio_photo_slots');
+    removeHeavyCVFromIndexedDB();
+    removeHeavyJDFromIndexedDB();
     savePortfolioContentToCloud(defaultState);
   };
 
