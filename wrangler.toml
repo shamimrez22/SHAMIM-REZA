@@ -2,6 +2,9 @@ name = "shamim-reza"
 main = "src/worker.ts"
 compatibility_date = "2024-09-01"
 
+[build]
+command = "npm run build"
+
 [assets]
 directory = "./dist"
 binding = "ASSETS"
