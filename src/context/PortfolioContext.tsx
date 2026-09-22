@@ -27,6 +27,7 @@ import {
   savePortfolioContentToCloud,
   fetchPortfolioContentFromCloud,
   subscribeToPortfolioContent,
+  getDeviceId,
 } from '../utils/cloudSync';
 import {
   saveCloudFile,
@@ -318,6 +319,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [lastSyncedTime, setLastSyncedTime] = useState<string>('');
   const isIncomingCloudSyncRef = React.useRef(false);
   const lastSavedStateJsonRef = React.useRef<string>('');
+  const isInitialCloudSyncDoneRef = React.useRef<boolean>(false);
 
   // Sync to localStorage and IndexedDB on change (Quota-Safe)
   useEffect(() => {
@@ -363,6 +365,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // 0. Universal Master Portfolio Content (Personal Info, Skills, Experiences, Educations, Certs, etc.)
     fetchPortfolioContentFromCloud().then((cloudContent) => {
       if (!isMounted) return;
+      isInitialCloudSyncDoneRef.current = true;
       if (cloudContent && cloudContent.personalInfo) {
         const cloudPayload = {
           personalInfo: cloudContent.personalInfo,
@@ -435,6 +438,14 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // Real-Time Listener for Content Changes from Firestore (broadcast to all devices & tabs)
     const unsubContent = subscribeToPortfolioContent((cloudContent) => {
       if (!isMounted || !cloudContent || !cloudContent.personalInfo) return;
+      isInitialCloudSyncDoneRef.current = true;
+
+      // Echo prevention: if change originated from this exact browser/tab, avoid feedback loop
+      const currentDeviceId = getDeviceId();
+      if (cloudContent.updatedByDeviceId && cloudContent.updatedByDeviceId === currentDeviceId) {
+        setCloudSyncStatus('synced');
+        return;
+      }
 
       const cloudPayload = {
         personalInfo: cloudContent.personalInfo,
@@ -664,6 +675,12 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Ensures ANY edit (text, number, skill, job description, experience, stats)
   // is immediately stored in Firestore and broadcasts live to all devices!
   useEffect(() => {
+    // CRITICAL: NEVER auto-save local cache before initial cloud sync finishes!
+    // Prevents stale local/default cache from overwriting live Firestore document on startup/mobile.
+    if (!isInitialCloudSyncDoneRef.current) {
+      return;
+    }
+
     if (isIncomingCloudSyncRef.current) {
       isIncomingCloudSyncRef.current = false;
       return;
@@ -722,25 +739,56 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Instant explicit manual sync trigger
   const syncAllToCloud = async (overrideState?: Partial<PortfolioFullState>): Promise<boolean> => {
     setCloudSyncStatus('syncing');
-    const targetPersonalInfo = overrideState?.personalInfo
-      ? { ...state.personalInfo, ...overrideState.personalInfo }
-      : state.personalInfo;
+
+    let targetState = state;
+    if (overrideState) {
+      targetState = {
+        ...state,
+        ...overrideState,
+        personalInfo: overrideState.personalInfo
+          ? { ...state.personalInfo, ...overrideState.personalInfo }
+          : state.personalInfo,
+        jobDescriptionData: overrideState.jobDescriptionData
+          ? { ...(state.jobDescriptionData || initialJobDescriptionData), ...overrideState.jobDescriptionData }
+          : state.jobDescriptionData,
+        statistics: overrideState.statistics || state.statistics,
+        skills: overrideState.skills || state.skills,
+        tools: overrideState.tools || state.tools,
+        services: overrideState.services || state.services,
+        workProcessSteps: overrideState.workProcessSteps || state.workProcessSteps,
+        whyChooseMeItems: overrideState.whyChooseMeItems || state.whyChooseMeItems,
+        sampleWorkProjects: overrideState.sampleWorkProjects || state.sampleWorkProjects,
+        experiences: overrideState.experiences || state.experiences,
+        educations: overrideState.educations || state.educations,
+        certifications: overrideState.certifications || state.certifications,
+        testimonials: overrideState.testimonials || state.testimonials,
+      };
+
+      // Immediately update local React state and localStorage so the current tab never reverts
+      setState(targetState);
+      try {
+        safeSetLocalStorage(STORAGE_KEY, JSON.stringify(sanitizeStateForLocalStorage(targetState)));
+      } catch {
+        // ignore
+      }
+    }
 
     const payload = {
-      personalInfo: targetPersonalInfo,
-      jobDescriptionData: overrideState?.jobDescriptionData || state.jobDescriptionData,
-      statistics: overrideState?.statistics || state.statistics,
-      skills: overrideState?.skills || state.skills,
-      tools: overrideState?.tools || state.tools,
-      services: overrideState?.services || state.services,
-      workProcessSteps: overrideState?.workProcessSteps || state.workProcessSteps,
-      whyChooseMeItems: overrideState?.whyChooseMeItems || state.whyChooseMeItems,
-      sampleWorkProjects: overrideState?.sampleWorkProjects || state.sampleWorkProjects,
-      experiences: overrideState?.experiences || state.experiences,
-      educations: overrideState?.educations || state.educations,
-      certifications: overrideState?.certifications || state.certifications,
-      testimonials: overrideState?.testimonials || state.testimonials,
+      personalInfo: targetState.personalInfo,
+      jobDescriptionData: targetState.jobDescriptionData,
+      statistics: targetState.statistics,
+      skills: targetState.skills,
+      tools: targetState.tools,
+      services: targetState.services,
+      workProcessSteps: targetState.workProcessSteps,
+      whyChooseMeItems: targetState.whyChooseMeItems,
+      sampleWorkProjects: targetState.sampleWorkProjects,
+      experiences: targetState.experiences,
+      educations: targetState.educations,
+      certifications: targetState.certifications,
+      testimonials: targetState.testimonials,
     };
+
     lastSavedStateJsonRef.current = JSON.stringify(payload);
     const ok = await savePortfolioContentToCloud(payload);
     if (ok) {

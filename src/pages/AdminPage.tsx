@@ -160,6 +160,7 @@ export const AdminPage: React.FC = () => {
 
   // Profile Form state
   const [profileForm, setProfileForm] = useState(personalInfo);
+  const [isProfileDirty, setIsProfileDirty] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string>(personalInfo.profilePhotoUrl || '');
   const photoInputRef = useRef<HTMLInputElement>(null);
   const slotPhotoInputRef = useRef<HTMLInputElement>(null);
@@ -181,8 +182,10 @@ export const AdminPage: React.FC = () => {
   }, [personalInfo.profilePhotoUrl]);
 
   useEffect(() => {
-    setProfileForm(personalInfo);
-  }, [personalInfo]);
+    if (!isProfileDirty) {
+      setProfileForm(personalInfo);
+    }
+  }, [personalInfo, isProfileDirty]);
 
   useEffect(() => {
     setSlotUrlValues(normalizeSlots(personalInfo.profilePhotoSlots));
@@ -190,10 +193,13 @@ export const AdminPage: React.FC = () => {
 
   // Job Description Form state
   const [jdForm, setJdForm] = useState<JobDescriptionData>(jobDescriptionData);
+  const [isJdDirty, setIsJdDirty] = useState(false);
 
   useEffect(() => {
-    setJdForm(jobDescriptionData);
-  }, [jobDescriptionData]);
+    if (!isJdDirty) {
+      setJdForm(jobDescriptionData);
+    }
+  }, [jobDescriptionData, isJdDirty]);
 
   // Work Sample Form Modal state
   const [isSampleModalOpen, setIsSampleModalOpen] = useState(false);
@@ -599,19 +605,29 @@ export const AdminPage: React.FC = () => {
   // Save Job Description Form Changes
   const handleSaveJD = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsJdDirty(false);
     updateJobDescriptionData(jdForm);
     showToast('☁️ Job Description তথ্য সব ডিভাইসে সিঙ্ক হচ্ছে...');
-    await syncAllToCloud({ jobDescriptionData: jdForm });
-    showToast('✅ Job Description সফলভাবে সেভ ও সব ডিভাইসে লাইভ হয়েছে!');
+    const ok = await syncAllToCloud({ jobDescriptionData: jdForm });
+    if (ok) {
+      showToast('✅ Job Description সফলভাবে সেভ ও সব ডিভাইসে লাইভ হয়েছে!');
+    } else {
+      showToast('⚠️ লোকাল সেভ হয়েছে, ক্লাউড কানেকশন চেক করুন।');
+    }
   };
 
   // Save Profile Changes
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsProfileDirty(false);
     updatePersonalInfo(profileForm);
     showToast('☁️ প্রোফাইল তথ্য আপডেট হচ্ছে এবং সব ডিভাইসে সাথে সাথে সিঙ্ক হচ্ছে...');
-    await syncAllToCloud({ personalInfo: profileForm });
-    showToast('✅ প্রোফাইল তথ্য সফলভাবে সেভ ও সব ডিভাইসে লাইভ হয়েছে!');
+    const ok = await syncAllToCloud({ personalInfo: profileForm });
+    if (ok) {
+      showToast('✅ প্রোফাইল তথ্য সফলভাবে সেভ ও সব ডিভাইসে লাইভ হয়েছে!');
+    } else {
+      showToast('⚠️ লোকাল সেভ হয়েছে, ক্লাউড কানেকশন চেক করুন।');
+    }
   };
 
   // Open Add Work Sample
@@ -648,33 +664,39 @@ export const AdminPage: React.FC = () => {
   };
 
   // Save Work Sample
-  const handleSaveSample = (e: React.FormEvent) => {
+  const handleSaveSample = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!sampleFormData.title.trim()) {
       showToast('⚠️ Please enter a title for the work sample.');
       return;
     }
 
+    let updatedList: SampleProject[];
     if (editingSampleId) {
       updateWorkSample(editingSampleId, sampleFormData);
+      updatedList = sampleWorkProjects.map((p) => (p.id === editingSampleId ? sampleFormData : p));
       showToast('✅ Work sample updated successfully!');
     } else {
       addWorkSample(sampleFormData);
+      updatedList = [...sampleWorkProjects, sampleFormData];
       showToast('✅ New work sample added to portfolio!');
     }
     setIsSampleModalOpen(false);
+    await syncAllToCloud({ sampleWorkProjects: updatedList });
   };
 
   // Delete Work Sample
-  const handleDeleteSample = (id: string, title: string) => {
+  const handleDeleteSample = async (id: string, title: string) => {
     if (window.confirm(`Are you sure you want to delete "${title}"?`)) {
       deleteWorkSample(id);
+      const updatedList = sampleWorkProjects.filter((p) => p.id !== id);
       showToast('Work sample deleted.');
+      await syncAllToCloud({ sampleWorkProjects: updatedList });
     }
   };
 
   // Add Skill
-  const handleAddSkill = (e: React.FormEvent) => {
+  const handleAddSkill = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSkill.name.trim()) return;
 
@@ -688,6 +710,7 @@ export const AdminPage: React.FC = () => {
     };
 
     addSkill(skillItem);
+    const updatedSkills = [...skills, skillItem];
     setNewSkill({
       name: '',
       category: 'core',
@@ -696,6 +719,7 @@ export const AdminPage: React.FC = () => {
       iconName: 'Activity',
     });
     showToast(`✅ Added skill: ${skillItem.name}`);
+    await syncAllToCloud({ skills: updatedSkills });
   };
 
   // Backup Import
@@ -1354,7 +1378,10 @@ export const AdminPage: React.FC = () => {
                         type="text"
                         required
                         value={profileForm.name}
-                        onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                        onChange={(e) => {
+                          setProfileForm({ ...profileForm, name: e.target.value });
+                          setIsProfileDirty(true);
+                        }}
                         className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-semibold outline-none transition-colors ${inputClass}`}
                       />
                     </div>
@@ -1368,7 +1395,10 @@ export const AdminPage: React.FC = () => {
                         type="text"
                         required
                         value={profileForm.title}
-                        onChange={(e) => setProfileForm({ ...profileForm, title: e.target.value })}
+                        onChange={(e) => {
+                          setProfileForm({ ...profileForm, title: e.target.value });
+                          setIsProfileDirty(true);
+                        }}
                         className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-semibold outline-none transition-colors ${inputClass}`}
                       />
                     </div>
@@ -1381,7 +1411,10 @@ export const AdminPage: React.FC = () => {
                       <input
                         type="text"
                         value={profileForm.tagline}
-                        onChange={(e) => setProfileForm({ ...profileForm, tagline: e.target.value })}
+                        onChange={(e) => {
+                          setProfileForm({ ...profileForm, tagline: e.target.value });
+                          setIsProfileDirty(true);
+                        }}
                         className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-semibold outline-none transition-colors ${inputClass}`}
                       />
                     </div>
@@ -1394,7 +1427,10 @@ export const AdminPage: React.FC = () => {
                       <textarea
                         rows={3}
                         value={profileForm.intro}
-                        onChange={(e) => setProfileForm({ ...profileForm, intro: e.target.value })}
+                        onChange={(e) => {
+                          setProfileForm({ ...profileForm, intro: e.target.value });
+                          setIsProfileDirty(true);
+                        }}
                         className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-normal outline-none transition-colors ${inputClass}`}
                       />
                     </div>
@@ -1407,7 +1443,10 @@ export const AdminPage: React.FC = () => {
                       <textarea
                         rows={4}
                         value={profileForm.aboutText}
-                        onChange={(e) => setProfileForm({ ...profileForm, aboutText: e.target.value })}
+                        onChange={(e) => {
+                          setProfileForm({ ...profileForm, aboutText: e.target.value });
+                          setIsProfileDirty(true);
+                        }}
                         className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-normal outline-none transition-colors ${inputClass}`}
                       />
                     </div>
@@ -1420,7 +1459,10 @@ export const AdminPage: React.FC = () => {
                       <input
                         type="text"
                         value={profileForm.location}
-                        onChange={(e) => setProfileForm({ ...profileForm, location: e.target.value })}
+                        onChange={(e) => {
+                          setProfileForm({ ...profileForm, location: e.target.value });
+                          setIsProfileDirty(true);
+                        }}
                         className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-semibold outline-none transition-colors ${inputClass}`}
                       />
                     </div>
@@ -1433,7 +1475,10 @@ export const AdminPage: React.FC = () => {
                       <input
                         type="text"
                         value={profileForm.experienceYears}
-                        onChange={(e) => setProfileForm({ ...profileForm, experienceYears: e.target.value })}
+                        onChange={(e) => {
+                          setProfileForm({ ...profileForm, experienceYears: e.target.value });
+                          setIsProfileDirty(true);
+                        }}
                         className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-semibold outline-none transition-colors ${inputClass}`}
                       />
                     </div>
@@ -1446,7 +1491,10 @@ export const AdminPage: React.FC = () => {
                       <input
                         type="text"
                         value={profileForm.availability}
-                        onChange={(e) => setProfileForm({ ...profileForm, availability: e.target.value })}
+                        onChange={(e) => {
+                          setProfileForm({ ...profileForm, availability: e.target.value });
+                          setIsProfileDirty(true);
+                        }}
                         className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-semibold outline-none transition-colors ${inputClass}`}
                       />
                     </div>
@@ -1460,7 +1508,10 @@ export const AdminPage: React.FC = () => {
                         type="email"
                         required
                         value={profileForm.email}
-                        onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                        onChange={(e) => {
+                          setProfileForm({ ...profileForm, email: e.target.value });
+                          setIsProfileDirty(true);
+                        }}
                         className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-semibold outline-none transition-colors ${inputClass}`}
                       />
                     </div>
@@ -1473,7 +1524,10 @@ export const AdminPage: React.FC = () => {
                       <input
                         type="text"
                         value={profileForm.phone}
-                        onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                        onChange={(e) => {
+                          setProfileForm({ ...profileForm, phone: e.target.value });
+                          setIsProfileDirty(true);
+                        }}
                         className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-semibold outline-none transition-colors ${inputClass}`}
                       />
                     </div>
@@ -1486,7 +1540,10 @@ export const AdminPage: React.FC = () => {
                       <input
                         type="text"
                         value={profileForm.whatsapp}
-                        onChange={(e) => setProfileForm({ ...profileForm, whatsapp: e.target.value })}
+                        onChange={(e) => {
+                          setProfileForm({ ...profileForm, whatsapp: e.target.value });
+                          setIsProfileDirty(true);
+                        }}
                         className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-semibold outline-none transition-colors ${inputClass}`}
                       />
                     </div>
@@ -1499,7 +1556,10 @@ export const AdminPage: React.FC = () => {
                       <input
                         type="text"
                         value={profileForm.linkedin}
-                        onChange={(e) => setProfileForm({ ...profileForm, linkedin: e.target.value })}
+                        onChange={(e) => {
+                          setProfileForm({ ...profileForm, linkedin: e.target.value });
+                          setIsProfileDirty(true);
+                        }}
                         className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-semibold outline-none transition-colors ${inputClass}`}
                       />
                     </div>
@@ -3089,10 +3149,12 @@ export const AdminPage: React.FC = () => {
                           </span>
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={async () => {
                               if (window.confirm(`Delete skill "${skill.name}"?`)) {
                                 deleteSkill(skill.id);
+                                const updatedSkills = skills.filter((s) => s.id !== skill.id);
                                 showToast(`Skill "${skill.name}" removed.`);
+                                await syncAllToCloud({ skills: updatedSkills });
                               }
                             }}
                             className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10"
@@ -3191,7 +3253,15 @@ export const AdminPage: React.FC = () => {
                 <div className="mt-6 flex justify-end">
                   <button
                     type="button"
-                    onClick={() => showToast('✅ Statistics saved successfully!')}
+                    onClick={async () => {
+                      showToast('☁️ Statistics ক্লাউডে সেভ ও লাইভ হচ্ছে...');
+                      const ok = await syncAllToCloud({ statistics });
+                      if (ok) {
+                        showToast('✅ Statistics সফলভাবে সেভ ও সব ডিভাইসে লাইভ হয়েছে!');
+                      } else {
+                        showToast('⚠️ লোকাল সেভ হয়েছে, ইন্টারনেট চেক করুন।');
+                      }
+                    }}
                     className={`inline-flex items-center gap-2 px-6 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl ${primaryBtnClass}`}
                   >
                     <Save className="w-4 h-4" />
@@ -3291,7 +3361,15 @@ export const AdminPage: React.FC = () => {
                 <div className="mt-6 flex justify-end">
                   <button
                     type="button"
-                    onClick={() => showToast('✅ Experience records updated!')}
+                    onClick={async () => {
+                      showToast('☁️ Experience তথ্য ক্লাউডে সেভ ও লাইভ হচ্ছে...');
+                      const ok = await syncAllToCloud({ experiences });
+                      if (ok) {
+                        showToast('✅ Experience তথ্য সফলভাবে সেভ ও সব ডিভাইসে লাইভ হয়েছে!');
+                      } else {
+                        showToast('⚠️ লোকাল সেভ হয়েছে, ইন্টারনেট চেক করুন।');
+                      }
+                    }}
                     className={`inline-flex items-center gap-2 px-6 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl ${primaryBtnClass}`}
                   >
                     <Save className="w-4 h-4" />
