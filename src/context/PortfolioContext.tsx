@@ -28,6 +28,7 @@ import {
   fetchPortfolioContentFromCloud,
   subscribeToPortfolioContent,
   getDeviceId,
+  fetchAdminCredentialsFromCloud,
 } from '../utils/cloudSync';
 import {
   saveCloudFile,
@@ -432,6 +433,23 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         });
         setCloudSyncStatus('synced');
         setLastSyncedTime(new Date().toLocaleTimeString());
+      }
+    });
+
+    // Sync admin credentials definition from cloud (does NOT log in, only keeps valid credentials up to date)
+    fetchAdminCredentialsFromCloud().then((cloudCreds) => {
+      if (!isMounted) return;
+      if (cloudCreds && cloudCreds.username && cloudCreds.password) {
+        try {
+          const stored = {
+            username: cloudCreds.username,
+            password: cloudCreds.password,
+            updatedAt: new Date().toISOString(),
+          };
+          localStorage.setItem('portfolio_admin_credentials', JSON.stringify(stored));
+        } catch {
+          // ignore
+        }
       }
     });
 

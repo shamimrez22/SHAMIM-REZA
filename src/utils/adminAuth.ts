@@ -82,10 +82,13 @@ export function verifyAdminLogin(
   const isPasswordMatch = cleanPass === currentCreds.password;
 
   if (isUsernameMatch && isPasswordMatch) {
+    // Zero-save policy: do not store logged-in user in localStorage to prevent session reuse
     try {
-      localStorage.setItem('portfolio_admin_logged_user', currentCreds.username);
+      localStorage.removeItem('portfolio_admin_logged_user');
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      localStorage.removeItem(REMEMBER_STORAGE_KEY);
     } catch {
-      // Storage unavailable or quota exceeded
+      // Storage unavailable
     }
 
     return {
@@ -150,7 +153,7 @@ export function updateAdminCredentials(
       updatedAt: new Date().toISOString(),
     };
     localStorage.setItem(CREDENTIALS_STORAGE_KEY, JSON.stringify(updated));
-    localStorage.setItem('portfolio_admin_logged_user', cleanNewUser);
+    localStorage.removeItem('portfolio_admin_logged_user');
 
     return {
       success: true,
@@ -177,7 +180,7 @@ export function resetAdminCredentialsToDefault(): { success: boolean; message: s
       updatedAt: new Date().toISOString(),
     };
     localStorage.setItem(CREDENTIALS_STORAGE_KEY, JSON.stringify(defaultCreds));
-    localStorage.setItem('portfolio_admin_logged_user', DEFAULT_ADMIN_USERNAME);
+    localStorage.removeItem('portfolio_admin_logged_user');
 
     return {
       success: true,

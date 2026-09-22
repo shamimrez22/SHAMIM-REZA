@@ -145,9 +145,25 @@ export const AdminPage: React.FC = () => {
 
   // Admin Authentication State - Always prompts for password every time the user enters the admin page
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [activeAdminUser, setActiveAdminUser] = useState<string>(() => {
-    return localStorage.getItem('portfolio_admin_logged_user') || getAdminCredentials().username;
-  });
+  const [activeAdminUser, setActiveAdminUser] = useState<string>(() => getAdminCredentials().username);
+
+  // Zero-Save Session Policy:
+  // Every time anyone leaves the page, refreshes, or closes the tab, session is wiped clean
+  useEffect(() => {
+    setIsAuthenticated(false);
+    logoutAdminUser();
+
+    const handleBeforeUnload = () => {
+      logoutAdminUser();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      logoutAdminUser();
+      setIsAuthenticated(false);
+    };
+  }, []);
 
   const handleLogout = () => {
     logoutAdminUser();

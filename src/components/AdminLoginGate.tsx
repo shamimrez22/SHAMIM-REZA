@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -10,16 +10,10 @@ import {
   ArrowLeft,
   AlertCircle,
   LogIn,
-  KeyRound,
   CheckCircle2,
-  Sparkles,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import {
-  verifyAdminLogin,
-  DEFAULT_ADMIN_USERNAME,
-  DEFAULT_ADMIN_PASSWORD,
-} from '../utils/adminAuth';
+import { verifyAdminLogin } from '../utils/adminAuth';
 
 interface AdminLoginGateProps {
   onLoginSuccess: (username: string) => void;
@@ -35,31 +29,38 @@ export const AdminLoginGate: React.FC<AdminLoginGateProps> = ({ onLoginSuccess }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successAnimation, setSuccessAnimation] = useState(false);
 
+  // Guarantee clean inputs every time the gate appears
+  useEffect(() => {
+    setUsername('');
+    setPassword('');
+    setErrorMessage(null);
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     setIsSubmitting(true);
 
+    const inputUser = username;
+    const inputPass = password;
+
     setTimeout(() => {
-      const result = verifyAdminLogin(username, password);
+      const result = verifyAdminLogin(inputUser, inputPass);
 
       if (result.success) {
         setSuccessAnimation(true);
+        // Wipe inputs immediately so no credentials remain in memory
+        setUsername('');
+        setPassword('');
         setTimeout(() => {
           setIsSubmitting(false);
-          onLoginSuccess(result.username || username);
-        }, 500);
+          onLoginSuccess(result.username || inputUser);
+        }, 400);
       } else {
         setIsSubmitting(false);
         setErrorMessage(result.message);
       }
-    }, 300);
-  };
-
-  const handleFillDefaults = () => {
-    setUsername(DEFAULT_ADMIN_USERNAME);
-    setPassword(DEFAULT_ADMIN_PASSWORD);
-    setErrorMessage(null);
+    }, 250);
   };
 
   return (
@@ -184,11 +185,11 @@ export const AdminLoginGate: React.FC<AdminLoginGateProps> = ({ onLoginSuccess }
           </AnimatePresence>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} autoComplete="off" data-lpignore="true" className="space-y-4">
             {/* Username Field */}
             <div>
               <label
-                htmlFor="admin-username"
+                htmlFor="admin-security-user"
                 className={`block text-xs font-bold uppercase tracking-wider mb-2 ${
                   theme === 'orange'
                     ? 'text-amber-300'
@@ -204,12 +205,18 @@ export const AdminLoginGate: React.FC<AdminLoginGateProps> = ({ onLoginSuccess }
                   <User className="w-4 h-4" />
                 </div>
                 <input
-                  id="admin-username"
+                  id="admin-security-user"
+                  name="admin_login_auth_username_unremembered"
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. SHAMIM"
-                  autoComplete="username"
+                  placeholder="ইউজারনেম লিখুন"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  data-lpignore="true"
+                  data-form-type="other"
                   required
                   className={`w-full pl-10 pr-4 py-3 rounded-xl text-sm font-semibold tracking-wide border transition-all outline-none ${
                     theme === 'orange'
@@ -226,7 +233,7 @@ export const AdminLoginGate: React.FC<AdminLoginGateProps> = ({ onLoginSuccess }
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label
-                  htmlFor="admin-password"
+                  htmlFor="admin-security-pass"
                   className={`block text-xs font-bold uppercase tracking-wider ${
                     theme === 'orange'
                       ? 'text-amber-300'
@@ -243,12 +250,18 @@ export const AdminLoginGate: React.FC<AdminLoginGateProps> = ({ onLoginSuccess }
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
-                  id="admin-password"
+                  id="admin-security-pass"
+                  name="admin_login_auth_password_unremembered"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="পাসওয়ার্ড দিন"
-                  autoComplete="current-password"
+                  placeholder="পাসওয়ার্ড লিখুন"
+                  autoComplete="new-password"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  data-lpignore="true"
+                  data-form-type="other"
                   required
                   className={`w-full pl-10 pr-12 py-3 rounded-xl text-sm font-semibold tracking-wide border transition-all outline-none ${
                     theme === 'orange'
@@ -279,7 +292,7 @@ export const AdminLoginGate: React.FC<AdminLoginGateProps> = ({ onLoginSuccess }
                 : 'bg-indigo-50 border-indigo-200 text-indigo-700'
             }`}>
               <ShieldCheck className="w-4 h-4 shrink-0" />
-              <span>নিরাপত্তা সুরক্ষা: অ্যাডমিন প্যানেলে প্রতিবার প্রবেশের সময় পাসওয়ার্ড প্রয়োজন।</span>
+              <span>নিরাপত্তা সুরক্ষা: অ্যাডমিন প্যানেলে প্রতিবার প্রবেশের সময় নতুন করে পাসওয়ার্ড প্রয়োজন।</span>
             </div>
 
             {/* Submit Button */}
@@ -313,7 +326,7 @@ export const AdminLoginGate: React.FC<AdminLoginGateProps> = ({ onLoginSuccess }
             </button>
           </form>
 
-          {/* Quick Default Helper Pill */}
+          {/* Zero-Save Security Policy Badge */}
           <div
             className={`mt-6 pt-5 border-t text-center ${
               theme === 'orange'
@@ -323,43 +336,25 @@ export const AdminLoginGate: React.FC<AdminLoginGateProps> = ({ onLoginSuccess }
                 : 'border-slate-200'
             }`}
           >
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs">
-              <div className="flex items-center gap-1.5 text-slate-400 font-medium text-[11px]">
-                <KeyRound className="w-3.5 h-3.5 text-amber-500" />
-                <span>
-                  ডিফল্ট লগইন:{' '}
-                  <strong className="text-white font-mono">{DEFAULT_ADMIN_USERNAME}</strong> /{' '}
-                  <strong className="text-white font-mono">{DEFAULT_ADMIN_PASSWORD}</strong>
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleFillDefaults}
-                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all border ${
-                  theme === 'orange'
-                    ? 'border-orange-500/30 text-orange-400 bg-orange-500/10 hover:bg-orange-500/20'
-                    : theme === 'dark'
-                    ? 'border-blue-500/30 text-blue-400 bg-blue-500/10 hover:bg-blue-500/20'
-                    : 'border-indigo-300 text-indigo-600 bg-indigo-50 hover:bg-indigo-100'
-                }`}
-                title="ডিফল্ট ইউজারনেম ও পাসওয়ার্ড পূরণ করুন"
-              >
-                <Sparkles className="w-3 h-3" />
-                <span>অটো ফিল (Auto Fill)</span>
-              </button>
-            </div>
-            <p
-              className={`text-[10px] mt-2.5 ${
+            <div
+              className={`p-3.5 rounded-2xl border text-left flex items-start gap-3 ${
                 theme === 'orange'
-                  ? 'text-amber-200/50'
+                  ? 'bg-orange-500/10 border-orange-500/20 text-amber-200'
                   : theme === 'dark'
-                  ? 'text-slate-500'
-                  : 'text-slate-400'
+                  ? 'bg-slate-950/60 border-slate-800 text-slate-300'
+                  : 'bg-slate-50 border-slate-200 text-slate-700'
               }`}
             >
-              প্যানেলে প্রবেশের পর যে কোনো সময় আপনার পছন্দমতো ইউজারনেম ও পাসওয়ার্ড পরিবর্তন করতে পারবেন।
-            </p>
+              <ShieldCheck className="w-5 h-5 mt-0.5 shrink-0 text-emerald-400" />
+              <div className="space-y-1">
+                <div className="font-bold text-xs uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                  <span>জিরো-সেভ সিকিউরিটি (Zero-Save Policy)</span>
+                </div>
+                <p className="text-[11px] leading-relaxed text-slate-400">
+                  কোনো ব্রাউজার বা ডিভাইসে ইউজারনেম ও পাসওয়ার্ড সেভ থাকবে না। প্রতিবার অ্যাডমিন প্যানেলে প্রবেশের সময় নতুন করে সঠিক তথ্য টাইপ করে প্রবেশ করতে হবে।
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </motion.div>

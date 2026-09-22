@@ -14,7 +14,6 @@ import {
   LogOut,
   Sparkles,
   Check,
-  Zap,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import {
@@ -59,11 +58,6 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
     setCreds(current);
     setNewUsername(current.username);
   }, []);
-
-  const handleAutoFillCurrentPassword = () => {
-    setCurrentPassword(creds.password);
-    showToast('Current password filled from active session');
-  };
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -325,15 +319,6 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
                 >
                   Current Password (বর্তমান পাসওয়ার্ড) *
                 </label>
-                <button
-                  type="button"
-                  onClick={handleAutoFillCurrentPassword}
-                  className="text-[10px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors"
-                  title="Auto-fill password from current session"
-                >
-                  <Zap className="w-3 h-3" />
-                  <span>Auto-fill Current</span>
-                </button>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -345,6 +330,8 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="Enter current password (e.g. 321)"
+                  autoComplete="new-password"
+                  data-lpignore="true"
                   required
                   className={`w-full pl-10 pr-12 py-3 rounded-xl text-sm font-semibold tracking-wide border transition-all outline-none ${inputClass}`}
                 />
@@ -383,6 +370,8 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Enter new password"
+                  autoComplete="new-password"
+                  data-lpignore="true"
                   required
                   className={`w-full pl-10 pr-12 py-3 rounded-xl text-sm font-semibold tracking-wide border transition-all outline-none ${inputClass}`}
                 />
@@ -418,6 +407,8 @@ export const AdminSecuritySettings: React.FC<AdminSecuritySettingsProps> = ({
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Re-enter new password"
+                  autoComplete="new-password"
+                  data-lpignore="true"
                   required
                   className={`w-full pl-10 pr-12 py-3 rounded-xl text-sm font-semibold tracking-wide border transition-all outline-none ${inputClass}`}
                 />
